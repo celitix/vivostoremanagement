@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MobileModel;
+use App\Models\Brand;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -10,18 +10,14 @@ class BrandController extends Controller
 {
     public function get()
     {
-        $user = auth()->user();
         try {
-            $data = MobileModel::query()->where("deleted_at", null)->orderBy("created_at", "desc")->get();
-
-            if (!$user) {
-                $data = $data->select("id", "model");
-            }
+            $data = Brand::query()->where("deleted_at", null)->orderBy("created_at", "desc")->get();
             return response()->json(["data" => $data, "message" => "Data Found Successfully", "status" => true], 200);
         } catch (\Exception $e) {
             return response()->json(["message" => $e->getMessage()], 500);
         }
     }
+
     public function create(Request $request)
     {
         try {
@@ -29,13 +25,13 @@ class BrandController extends Controller
                 'name' => 'required',
             ]);
 
-            $isModelExist = MobileModel::where("name", $request->get("name"))->where('deleted_at', null)->first();
+            $isModelExist = Brand::where("name", $request->get("name"))->where('deleted_at', null)->first();
 
             if ($isModelExist) {
                 return response()->json(["message" => "Brand Already Exist", "status" => false], 400);
             }
 
-            MobileModel::create([
+            Brand::create([
                 'name' => $request->get("name"),
             ]);
 
@@ -48,20 +44,20 @@ class BrandController extends Controller
     {
         try {
             $request->validate([
-                'id' => 'required|exists:mobile_models,id',
+                'id' => 'required|exists:brands,id',
                 'name' => [
                     'required',
 
                 ],
             ]);
 
-            $isModelExist = MobileModel::where("name", $request->get("name"))->where('deleted_at', null)->whereNot("id", $request->get("id"))->first();
+            $isModelExist = Brand::where("name", $request->get("name"))->where('deleted_at', null)->whereNot("id", $request->get("id"))->first();
 
             if ($isModelExist) {
                 return response()->json(["message" => "Brand Already Exist", "status" => false], 400);
             }
 
-            $model = MobileModel::where("id", $request->get("id"))->first();
+            $model = Brand::where("id", $request->get("id"))->first();
             $model->name = $request->get("name");
             $model->save();
             return response()->json(["message" => " Brand Updated Successfully", "status" => true], 200);
@@ -72,7 +68,7 @@ class BrandController extends Controller
     public function delete(int $id)
     {
         try {
-            $model = MobileModel::where("id", $id)->first();
+            $model = Brand::where("id", $id)->first();
 
             if ($model) {
                 $model->delete();
@@ -87,7 +83,7 @@ class BrandController extends Controller
     public function deletedModel()
     {
         try {
-            $data = MobileModel::onlyTrashed()->orderBy("created_at", "desc")->get();
+            $data = Brand::onlyTrashed()->orderBy("created_at", "desc")->get();
             return response()->json(["data" => $data, "message" => "Data Found Successfully", "status" => true], 200);
         } catch (\Exception $e) {
             return response()->json(["message" => $e->getMessage()], 500);
@@ -96,7 +92,7 @@ class BrandController extends Controller
     public function hardDelete(int $id)
     {
         try {
-            $model = MobileModel::onlyTrashed()->where("id", $id)->first();
+            $model = Brand::onlyTrashed()->where("id", $id)->first();
 
             if (!$model) {
                 return response()->json(["message" => "Model Not Found", "status" => false], 404);
@@ -111,7 +107,7 @@ class BrandController extends Controller
     public function restore(int $id)
     {
         try {
-            $model = MobileModel::onlyTrashed()->where("id", $id)->first();
+            $model = Brand::onlyTrashed()->where("id", $id)->first();
 
             if (!$model) {
                 return response()->json(["message" => "Model Not Found", "status" => false], 404);

@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\BrandController;
 use App\Http\Controllers\LeadController;
-use App\Http\Controllers\ModelController;
 use App\Http\Controllers\TokenController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -12,7 +11,7 @@ Route::post("/save", [TokenController::class, 'store']);
 Route::post("/sendOtp", [UserController::class, 'sendOtp']);
 Route::post("/verifyOtp", [UserController::class, 'verifyOtp']);
 Route::post('/login', [UserController::class, 'login']);
-Route::get("/model", [BrandController::class, 'get']);
+Route::get("/brand", [BrandController::class, 'get']);
 
 
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
@@ -28,12 +27,12 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 
     // //model
     // // model/deleted/:id
-    // Route::post("/model", [ModelController::class, 'create']);
-    // Route::put("/model", [ModelController::class, 'update']);
-    // Route::delete("/model/{id}", [ModelController::class, 'delete']);
-    // Route::get("/model/deleted", [ModelController::class, 'deletedModel']);
-    // Route::post("/model/restore/{id}", [ModelController::class, 'restore']);
-    // Route::delete("/model/deleted/{id}", [ModelController::class, 'hardDelete']);
+    Route::post("/brand", [BrandController::class, 'create']);
+    Route::put("/brand", [BrandController::class, 'update']);
+    Route::delete("/brand/{id}", [BrandController::class, 'delete']);
+    Route::get("/brand/deleted", [BrandController::class, 'deletedModel']);
+    Route::post("/brand/restore/{id}", [BrandController::class, 'restore']);
+    Route::delete("/brand/deleted/{id}", [BrandController::class, 'hardDelete']);
 
 
     Route::post("/update", [UserController::class, 'update']);
