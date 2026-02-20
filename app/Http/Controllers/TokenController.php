@@ -79,9 +79,10 @@ class TokenController extends Controller
                 'token' => "required|exists:tokens,token",
                 'consumer_name' => "required",
                 'contact_number' => "required|numeric",
-                'email' => "required|email",
-                // 'model' => "required|exists:mobile_models,model",
-                'query' => "required",
+                "brand_id" => "required|exists:brands,id",
+                'gender' => "required",
+                'age' => "required",
+                'pincode' => "required",
                 // 'type' => "required",
             ]);
 
@@ -94,11 +95,10 @@ class TokenController extends Controller
                 'token_id' => $token->id,
                 'consumer_name' => $request->get("consumer_name"),
                 'contact_number' => $request->get("contact_number"),
-                'email' => $request->get("email"),
-                'model_id' => $request->get("model") ?? null,
-                'query' => $request->get("query"), // this key now used for source
-                'type' => $request->get("type"),
-                'message' => $request->get("message"),
+                'brand_id' => $request->get("brand_id") ?? null,
+                'gender' => $request->get("gender"),
+                'age' => $request->get("age"),
+                'pincode' => $request->get("pincode"),
             ]);
 
             $res->load([
@@ -106,13 +106,13 @@ class TokenController extends Controller
                 'token.user'
             ]);
 
-            $email = $res->token->user->email;
-            $name = $res->token->user->name;
-            $model = $res?->model?->model ?? "";
-            $type = $res->type;
+            // $email = $res->token->user->email;
+            // $name = $res->token->user->name;
+            // $model = $res?->model?->model ?? "";
+            // $type = $res->type;
 
 
-            $this->sendEmail($request->all(), $name, $email, $model, $type);
+            // $this->sendEmail($request->all(), $name, $email, $model, $type);
 
             return response()->json(["message" => "Token Response Created Successfully", "status" => true], 200);
         } catch (\Exception $e) {

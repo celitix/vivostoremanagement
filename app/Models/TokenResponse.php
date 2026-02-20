@@ -11,12 +11,10 @@ class TokenResponse extends Model
         'token_id',
         'consumer_name',
         'contact_number',
-        'email',
-        'model_id',
-        'query',
-        'type',
-        "convered_at",
-        "message"
+        "brand_id",
+        "gender",
+        "age",
+        "pincode",
     ];
 
     public function leads()
@@ -24,19 +22,14 @@ class TokenResponse extends Model
         return $this->hasOne(Lead::class, "token_responses_id");
     }
 
-    public function lead()
-    {
-        return $this->hasMany(Lead::class, "token_responses_id");
-    }
-
     public function token()
     {
         return $this->belongsTo(\App\Models\Token::class);
     }
 
-    public function model()
+    public function brand()
     {
-        return $this->belongsTo(\App\Models\MobileModel::class, 'model_id');
+        return $this->belongsTo(\App\Models\Brand::class);
     }
 
     public function user()

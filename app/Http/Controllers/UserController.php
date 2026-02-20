@@ -59,9 +59,16 @@ class UserController extends Controller
                 'storeName' => 'required',
             ]);
 
-            User::create([
+            $user = User::create([
                 'name' => $request->get('name'),
                 'storeName' => $request->get('storeName'),
+            ]);
+
+            $token = $user->createToken('tracking')->plainTextToken;
+
+            Token::create([
+                'user_id' => $user->id,
+                'token' => $token
             ]);
 
             return response()->json(["message" => "User Created Successfully", "status" => true], 200);
@@ -151,7 +158,7 @@ class UserController extends Controller
     {
         try {
             $request->validate([
-                'mobile' => 'required|exists:users,mobile',
+                'mobile' => 'required',
             ]);
 
             $otp = rand(10000, 99999);
@@ -186,7 +193,7 @@ class UserController extends Controller
             $request->validate([
                 'otp' => 'required|min:4',
                 'otpId' => 'required|exists:otps,id',
-                "mobile" => "required|exists:users,mobile"
+                "mobile" => "required"
             ]);
 
             $otp = Otp::find($request->otpId);
@@ -256,138 +263,135 @@ class UserController extends Controller
     // }
 
 
-    // public function report()
-    // {
-    //     try {
-    //         $authUser = auth()->user();
-    //         $users = User::where("id", $authUser->id)->get();
+    public function report()
+    {
+        try {
+            $users = User::whereNot("role", "admin")->with([
+                'token.responses.leads',
+                'token.responses.model'
+            ])->get();
 
-    //         if ($authUser->role == "admin") {
-    //             $users = User::where("role", "user")->with([
-    //                 'token.responses.leads',
-    //                 'token.responses.model'
-    //             ])->get();
-    //         }
+            $result = [];
 
-    //         $result = [];
+            foreach ($users as $user) {
 
-    //         foreach ($users as $user) {
-
-    //             $responses = $user->tokenResponses;
-    //             $leads = $user->leads;
+                $responses = $user->tokenResponses;
+                // $leads = $user->leads;
 
 
-    //             $totalResponses = $responses->count();
-    //             $totalLeads = $responses->flatMap->lead->count();
-    //             $totalConversions = $responses->flatMap->lead->where('is_converted', true)->count();
+                // $totalResponses = $responses->count();
+                // $totalLeads = $responses->flatMap->lead->count();
+                // $totalConversions = $responses->flatMap->lead->where('is_converted', true)->count();
 
 
-    //             $responsesPerModel = $responses
-    //                 ->groupBy(fn($r) => $r->model?->model)
-    //                 ->map(fn($r) => $r->count())
-    //                 ->map(fn($count, $model) => [
-    //                     'model' => $model,
-    //                     'total_responses' => $count
-    //                 ])
-    //                 ->values();
+                // $responsesPerModel = $responses
+                //     ->groupBy(fn($r) => $r->model?->model)
+                //     ->map(fn($r) => $r->count())
+                //     ->map(fn($count, $model) => [
+                //         'model' => $model,
+                //         'total_responses' => $count
+                //     ])
+                //     ->values();
 
-    //             $leadsPerModel = $responses->groupBy(fn($r) => $r->model?->model)
-    //                 ->map(fn($group) => $group->flatMap->lead)
-    //                 ->map(fn($group, $model) => [
-    //                     'model' => $model,
-    //                     'total_leads' => $group->count(),
-    //                 ])
-    //                 ->values();
+                // $leadsPerModel = $responses->groupBy(fn($r) => $r->model?->model)
+                //     ->map(fn($group) => $group->flatMap->lead)
+                //     ->map(fn($group, $model) => [
+                //         'model' => $model,
+                //         'total_leads' => $group->count(),
+                //     ])
+                //     ->values();
 
-    //             $conversionsPerModel = $responses
-    //                 ->groupBy(fn($r) => $r->model?->model)
-    //                 ->map(function ($group) {
-    //                     return $group->flatMap->lead->where('is_converted', true)->count();
-    //                 })
-    //                 ->map(fn($count, $model) => [
-    //                     'model' => $model,
-    //                     'total_conversions' => $count
-    //                 ])
-    //                 ->values();
+                // $conversionsPerModel = $responses
+                //     ->groupBy(fn($r) => $r->model?->model)
+                //     ->map(function ($group) {
+                //         return $group->flatMap->lead->where('is_converted', true)->count();
+                //     })
+                //     ->map(fn($count, $model) => [
+                //         'model' => $model,
+                //         'total_conversions' => $count
+                //     ])
+                //     ->values();
 
-    //             $responsesPerSource = $responses
-    //                 ->groupBy('query')  //here source is saved in query
-    //                 ->map(fn($r) => $r->count())
-    //                 ->map(fn($count, $source) => [
-    //                     'source' => $source,
-    //                     'total_responses' => $count
-    //                 ])
-    //                 ->values();
+                // $responsesPerSource = $responses
+                //     ->groupBy('query')  //here source is saved in query
+                //     ->map(fn($r) => $r->count())
+                //     ->map(fn($count, $source) => [
+                //         'source' => $source,
+                //         'total_responses' => $count
+                //     ])
+                //     ->values();
 
 
-    //             $responsePerModel = MobileModel::all()->map(function ($model) use ($responses) {
-    //                 return [
-    //                     "model" => $model->model,
-    //                     "total_responses" => $responses->where("model_id", $model->id)->count(),
-    //                     "total_leads" => $responses->where("model_id", $model->id)->flatMap->lead->count(),
-    //                     "total_conversions" => $responses->where("model_id", $model->id)->flatMap->lead->where('is_converted', true)->count(),
-    //                 ];
-    //             });
-    //             $leadsPerResponse = $totalResponses > 0
-    //                 ? round($totalLeads / $totalResponses, 2)
-    //                 : 0;
+                // $responsePerModel = MobileModel::all()->map(function ($model) use ($responses) {
+                //     return [
+                //         "model" => $model->model,
+                //         "total_responses" => $responses->where("model_id", $model->id)->count(),
+                //         "total_leads" => $responses->where("model_id", $model->id)->flatMap->lead->count(),
+                //         "total_conversions" => $responses->where("model_id", $model->id)->flatMap->lead->where('is_converted', true)->count(),
+                //     ];
+                // });
+                // $leadsPerResponse = $totalResponses > 0
+                //     ? round($totalLeads / $totalResponses, 2)
+                //     : 0;
 
-    //             $newUsers = $user->where('created_at', '>', Carbon::now()->subDays(7))->count();
-    //             $increasePercentage = $newUsers > 0 ? round(($newUsers / $user->count()) * 100, 2) : 0;
+                // $newUsers = $user->where('created_at', '>', Carbon::now()->subDays(7))->count();
+                // $increasePercentage = $newUsers > 0 ? round(($newUsers / $user->count()) * 100, 2) : 0;
 
-    //             $newUserToday = $user->whereDate('created_at', Carbon::today())->count();
+                // $newUserToday = $user->whereDate('created_at', Carbon::today())->count();
 
-    //             $topModel = TokenResponse::select('model_id', DB::raw('COUNT(*) as total'))
-    //                 ->groupBy('model_id')
-    //                 ->orderByDesc('total')
-    //                 ->with('model')
-    //                 ->first();
+                // $topModel = TokenResponse::select('model_id', DB::raw('COUNT(*) as total'))
+                //     ->groupBy('model_id')
+                //     ->orderByDesc('total')
+                //     ->with('model')
+                //     ->first();
 
-    //             $recentLeadsCount = Lead::where('created_at', '>', Carbon::now()->subDays(2))->count();
+                // $recentLeadsCount = Lead::where('created_at', '>', Carbon::now()->subDays(2))->count();
 
-    //             $totalResponse;
-    //             if ($authUser->role == "admin") {
-    //                 $totalResponse = TokenResponse::all()->count();
-    //             }
+                // $totalResponse;
+                // if ($authUser->role == "admin") {
+                //     $totalResponse = TokenResponse::all()->count();
+                // }
 
 
 
-    //             $result[] = [
-    //                 "user_id" => $user->id,
-    //                 "user_name" => $user->name,
-    //                 "total_responses" => $totalResponses,
-    //                 "total_leads" => $totalLeads,
-    //                 "total_conversions" => $totalConversions,
-    //                 "leads_per_response" => $leadsPerResponse,
-    //                 "responses_per_model" => $responsesPerModel,
-    //                 "leads_per_model" => $leadsPerModel,
-    //                 "conversions_per_model" => $conversionsPerModel,
-    //                 "responsesPerSource" => $responsesPerSource,
-    //                 "responses" => $responsePerModel,
+                $result[] = [
+                    "user_id" => $user->id,
+                    "user_name" => $user->name,
+                    "total_responses" => $responses,
+                    // "total_leads" => $totalLeads,
+                    // "total_conversions" => $totalConversions,
+                    // "leads_per_response" => $leadsPerResponse,
+                    // "responses_per_model" => $responsesPerModel,
+                    // "leads_per_model" => $leadsPerModel,
+                    // "conversions_per_model" => $conversionsPerModel,
+                    // "responsesPerSource" => $responsesPerSource,
+                    // "responses" => $responsePerModel,
 
-    //             ];
-    //         }
+                ];
 
-    //         return response()->json([
-    //             "message" => "Tracking data loaded successfully",
-    //             "status" => true,
-    //             "data" => $result,
-    //             "meta" => [
-    //                 "new_users_percentage" => $increasePercentage,
-    //                 "newUserToday" => $newUserToday,
-    //                 "topModel" => $topModel->model->model,
-    //                 "recentLeadsCount" => $recentLeadsCount,
-    //                 "totalResponse" => $totalResponse ?? null
-    //             ]
-    //         ], 200);
 
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             "message" => $e->getMessage(),
-    //             "status" => false
-    //         ], 500);
-    //     }
-    // }
+            }
+
+            return response()->json([
+                "message" => "Tracking data loaded successfully",
+                "status" => true,
+                "data" => $result,
+                // "meta" => [
+                //     "new_users_percentage" => $increasePercentage,
+                //     "newUserToday" => $newUserToday,
+                //     "topModel" => $topModel->model->model,
+                //     "recentLeadsCount" => $recentLeadsCount,
+                //     "totalResponse" => $totalResponse ?? null
+                // ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => $e->getMessage(),
+                "status" => false
+            ], 500);
+        }
+    }
 
     public function update(Request $request)
     {
@@ -453,7 +457,7 @@ class UserController extends Controller
             $from = $fromDate ? Carbon::parse($fromDate)->startOfDay() : null;
             $to = $toDate ? Carbon::parse($toDate)->endOfDay() : null;
 
-            $data = TokenResponse::with(["token.user", "leads", "model"])
+            $data = TokenResponse::with(["token.user", "brand"])
                 ->when($from && $to, function ($query) use ($from, $to) {
                     $query->whereBetween('created_at', [$from, $to]);
                 })
@@ -465,7 +469,7 @@ class UserController extends Controller
                 ->orderBy("created_at", "desc")
                 ->paginate(10)
                 ->through(function ($item) {
-                    $item->isCreated = (bool) $item->leads;
+                    // $item->isCreated = (bool) $item->leads;
                     return $item;
                 });
 
