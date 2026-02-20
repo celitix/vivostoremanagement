@@ -51,30 +51,26 @@ class UserController extends Controller
     }
 
 
-    // public function store(Request $request)
-    // {
-    //     try {
-    //         $request->validate([
-    //             'name' => 'required',
-    //             'email' => 'required|email|unique:users,email',
-    //             'mobile' => 'required|unique:users,mobile',
-    //             'password' => 'required|min:8',
-    //         ]);
+    public function store(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required',
+                'storeName' => 'required',
+            ]);
 
-    //         User::create([
-    //             'name' => $request->get('name'),
-    //             'email' => $request->get('email'),
-    //             'mobile' => $request->get('mobile'),
-    //             "isLogin" => 1,
-    //             "password" => $request->get('password'),
-    //             "role" => "admin"
-    //         ]);
+            User::create([
+                'name' => $request->get('name'),
+                'storeName' => $request->get('storeName'),
+                'password' => "adaasdasd",
+                'phone' => "1234567890",
+            ]);
 
-    //         return response()->json(["message" => "Admin Created Successfully", "status" => true], 200);
-    //     } catch (\Exception $e) {
-    //         return response()->json(["message" => $e->getMessage(), "status" => false], 500);
-    //     }
-    // }
+            return response()->json(["message" => "User Created Successfully", "status" => true], 200);
+        } catch (\Exception $e) {
+            return response()->json(["message" => $e->getMessage(), "status" => false], 500);
+        }
+    }
 
     // public function createUser(Request $request)
     // {
@@ -127,7 +123,7 @@ class UserController extends Controller
     {
         try {
             $userId = $request->user()->id;
-            $user = User::where("id", "!=", $userId)->where("role", "user")->orderBy("created_at", "desc")->get();
+            $user = User::where("id", "!=", $userId)->whereNot("role", "admin")->orderBy("created_at", "desc")->get();
             return response()->json(["users" => $user, "message" => "Users Found Successfully", "status" => true], 200);
         } catch (\Exception $e) {
             return response()->json(["message" => $e->getMessage(), "status" => false], 500);
@@ -402,8 +398,7 @@ class UserController extends Controller
             $request->validate([
                 "id" => "required|exists:users,id",
                 'name' => 'required',
-                'email' => 'required|email|unique:users,email,' . $request->get('id'),
-                'mobile' => 'required|unique:users,mobile,' . $request->get('id'),
+                'storeName' => 'required',
                 // 'password' => 'required|min:8',
             ]);
 

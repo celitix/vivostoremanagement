@@ -80,11 +80,9 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
-        'email',
-        'mobile',
-        'isLogin',
-        'password',
-        'role'
+        'storeName',
+        "password",
+        "phone",
     ];
 
     protected function casts(): array
@@ -94,7 +92,7 @@ class User extends Authenticatable
         ];
     }
 
-    protected $hidden = ['password', 'isLogin','role'];
+    protected $hidden = ['password', 'isLogin', 'role'];
 
 
     // -----------------------------------------

@@ -18,9 +18,9 @@ Route::get("/model", [BrandController::class, 'get']);
 Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('/allUsers', [UserController::class, 'allUsers']);
     // Route::post('/createAdmin', [UserController::class, 'store']);
-    // Route::post('/createUser', [UserController::class, 'createUser']);
+    Route::post('/createUser', [UserController::class, 'store']);
     // Route::get('/getUserToken/{id}', [UserController::class, 'getUserToken']);
-    // Route::post('/delete/{id}', [UserController::class, 'destroy']);
+    Route::post('/delete/{id}', [UserController::class, 'destroy']);
     // // Route::get('/allUsers', [UserController::class, 'allUsers']);
 
 
@@ -36,7 +36,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     // Route::delete("/model/deleted/{id}", [ModelController::class, 'hardDelete']);
 
 
-    // Route::post("/update", [UserController::class, 'update']);
+    Route::post("/update", [UserController::class, 'update']);
     // Route::post("/password", [UserController::class, 'password']);
     // Route::get('/allUserData', [UserController::class, 'allUserData']);
     // Route::get('/allUser', [UserController::class, 'allUser']);
