@@ -14,8 +14,8 @@ return new class extends Migration {
             $table->id();
             $table->string('name');
             $table->string('storeName')->unique();
-            $table->string("password");
-            $table->string("phone")->unique();
+            $table->string("password")->nullable();
+            $table->string("phone")->unique()->nullable();
             $table->timestamps();
         });
 

@@ -62,8 +62,6 @@ class UserController extends Controller
             User::create([
                 'name' => $request->get('name'),
                 'storeName' => $request->get('storeName'),
-                'password' => "adaasdasd",
-                'phone' => "1234567890",
             ]);
 
             return response()->json(["message" => "User Created Successfully", "status" => true], 200);
@@ -445,72 +443,72 @@ class UserController extends Controller
     //     }
     // }
 
-    // public function allUserData(Request $request)
-    // {
-    //     try {
-    //         $fromDate = request()->query("fromDate");
-    //         $toDate = request()->query("toDate");
-    //         $vbaId = request()->query("vbaId");
+    public function allUserData(Request $request)
+    {
+        try {
+            $fromDate = request()->query("fromDate");
+            $toDate = request()->query("toDate");
+            $vbaId = request()->query("vbaId");
 
-    //         $from = $fromDate ? Carbon::parse($fromDate)->startOfDay() : null;
-    //         $to = $toDate ? Carbon::parse($toDate)->endOfDay() : null;
+            $from = $fromDate ? Carbon::parse($fromDate)->startOfDay() : null;
+            $to = $toDate ? Carbon::parse($toDate)->endOfDay() : null;
 
-    //         $data = TokenResponse::with(["token.user", "leads", "model"])
-    //             ->when($from && $to, function ($query) use ($from, $to) {
-    //                 $query->whereBetween('created_at', [$from, $to]);
-    //             })
-    //             ->when($vbaId, function ($query) use ($vbaId) {
-    //                 $query->whereHas('token', function ($q) use ($vbaId) {
-    //                     $q->where('user_id', $vbaId);
-    //                 });
-    //             })
-    //             ->orderBy("created_at", "desc")
-    //             ->paginate(10)
-    //             ->through(function ($item) {
-    //                 $item->isCreated = (bool) $item->leads;
-    //                 return $item;
-    //             });
+            $data = TokenResponse::with(["token.user", "leads", "model"])
+                ->when($from && $to, function ($query) use ($from, $to) {
+                    $query->whereBetween('created_at', [$from, $to]);
+                })
+                ->when($vbaId, function ($query) use ($vbaId) {
+                    $query->whereHas('token', function ($q) use ($vbaId) {
+                        $q->where('user_id', $vbaId);
+                    });
+                })
+                ->orderBy("created_at", "desc")
+                ->paginate(10)
+                ->through(function ($item) {
+                    $item->isCreated = (bool) $item->leads;
+                    return $item;
+                });
 
-    //         // $data = TokenResponse::with(["token.user", "lead", "model"])->where(function ($query) use ($fromDate, $toDate) {
-    //         //     if ($fromDate && $toDate) {
-    //         //         $fromDate = Carbon::parse($fromDate)->startOfDay();
-    //         //         $toDate = Carbon::parse($toDate)->endOfDay();
-    //         //         $query->whereBetween('created_at', [$fromDate, $toDate]);
-    //         //     }
-    //         // })->paginate(10)
-    //         //     ->through(function ($item) {
-    //         //         $item->isCreated = (bool) $item->lead;
-    //         //         return $item;
-    //         //     });
+            // $data = TokenResponse::with(["token.user", "lead", "model"])->where(function ($query) use ($fromDate, $toDate) {
+            //     if ($fromDate && $toDate) {
+            //         $fromDate = Carbon::parse($fromDate)->startOfDay();
+            //         $toDate = Carbon::parse($toDate)->endOfDay();
+            //         $query->whereBetween('created_at', [$fromDate, $toDate]);
+            //     }
+            // })->paginate(10)
+            //     ->through(function ($item) {
+            //         $item->isCreated = (bool) $item->lead;
+            //         return $item;
+            //     });
 
-    //         // $responses = $data->tokenResponses();
+            // $responses = $data->tokenResponses();
 
 
-    //         return response()->json([
-    //             "message" => "User data loaded successfully",
-    //             "status" => true,
-    //             "data" => $data->items(),
-    //             "fromDate" => $fromDate,
-    //             "toDate" => $toDate,
-    //             // "responses" => $responses,
-    //             'meta' => [
-    //                 'current_page' => $data->currentPage(),
-    //                 'last_page' => $data->lastPage(),
-    //                 'per_page' => $data->perPage(),
-    //                 'total' => $data->total(),
-    //                 'from' => $data->firstItem(),
-    //                 'to' => $data->lastItem(),
-    //                 'next_page_url' => $data->nextPageUrl(),
-    //                 'prev_page_url' => $data->previousPageUrl(),
-    //             ]
-    //         ], 200);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             "message" => $e->getMessage(),
-    //             "status" => false
-    //         ], 500);
-    //     }
-    // }
+            return response()->json([
+                "message" => "User data loaded successfully",
+                "status" => true,
+                "data" => $data->items(),
+                "fromDate" => $fromDate,
+                "toDate" => $toDate,
+                // "responses" => $responses,
+                'meta' => [
+                    'current_page' => $data->currentPage(),
+                    'last_page' => $data->lastPage(),
+                    'per_page' => $data->perPage(),
+                    'total' => $data->total(),
+                    'from' => $data->firstItem(),
+                    'to' => $data->lastItem(),
+                    'next_page_url' => $data->nextPageUrl(),
+                    'prev_page_url' => $data->previousPageUrl(),
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => $e->getMessage(),
+                "status" => false
+            ], 500);
+        }
+    }
 
     public function allUser()
     {

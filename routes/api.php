@@ -18,7 +18,7 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
     Route::get('/allUsers', [UserController::class, 'allUsers']);
     // Route::post('/createAdmin', [UserController::class, 'store']);
     Route::post('/createUser', [UserController::class, 'store']);
-    // Route::get('/getUserToken/{id}', [UserController::class, 'getUserToken']);
+    Route::get('/getUserToken/{id}', [UserController::class, 'getUserToken']);
     Route::post('/delete/{id}', [UserController::class, 'destroy']);
     // // Route::get('/allUsers', [UserController::class, 'allUsers']);
 
@@ -37,8 +37,8 @@ Route::middleware(['auth:sanctum', 'abilities:admin'])->group(function () {
 
     Route::post("/update", [UserController::class, 'update']);
     // Route::post("/password", [UserController::class, 'password']);
-    // Route::get('/allUserData', [UserController::class, 'allUserData']);
-    // Route::get('/allUser', [UserController::class, 'allUser']);
+    Route::get('/allUserData', [UserController::class, 'allUserData']);
+    Route::get('/allUser', [UserController::class, 'allUser']);
     // Route::get('/export', [UserController::class, 'exportData']);
 });
 
