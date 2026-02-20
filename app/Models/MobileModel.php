@@ -9,6 +9,6 @@ class MobileModel extends Model
 {
     use SoftDeletes;
     protected $fillable = [
-        "model"
+        "name"
     ];
 }
