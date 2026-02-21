@@ -267,8 +267,8 @@ class UserController extends Controller
     {
         try {
             $users = User::whereNot("role", "admin")->with([
-                'token.responses.leads',
-                'token.responses.model'
+                'token.responses',
+                'token.responses.brand'
             ])->get();
 
             $result = [];
@@ -531,27 +531,27 @@ class UserController extends Controller
         }
     }
 
-    // public function exportData(Request $request)
-    // {
-    //     try {
-    //         $data = TokenResponse::query()
-    //             ->with('leads')
-    //             ->with("token")
-    //             ->with("user")
-    //             ->orderBy("created_at", "desc")
-    //             ->get()->map(function ($item) {
-    //                 $item->isCreated = (bool) $item->leads;
-    //                 return $item;
-    //             });
+    public function exportData(Request $request)
+    {
+        try {
+            $data = TokenResponse::query()
+                ->with('brand')
+                ->with("token")
+                ->with("user")
+                ->orderBy("created_at", "desc")
+                ->get()->map(function ($item) {
 
-    //         return Excel::download(new DynamicExport($data), 'export.xlsx');
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             "message" => $e->getMessage(),
-    //             "status" => false
-    //         ], 500);
-    //     }
-    // }
+                    return $item;
+                });
+
+            return Excel::download(new DynamicExport($data), 'export.xlsx');
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => $e->getMessage(),
+                "status" => false
+            ], 500);
+        }
+    }
 
     private function sendOtpToMbno($data)
     {

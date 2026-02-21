@@ -21,39 +21,27 @@ class DynamicExport implements FromArray
 
         $excelData[] = [
             // 'ID',
-            'VBA',
+            'Name',
+            'Store Name',
             'Consumer Name',
             'Contact Number',
-            'Email',
-            'Model',
-            'Source',
-            'Query Type',
-            'User Query',
-            'Created At',
-            // 'Lead ID',
-            'Converted',
-            'IMEI',
-            'Remarks',
+            'Brand',
+            "Gender",
+            "Age",
+            "Pincode",
         ];
 
         foreach ($this->data as $item) {
             $excelData[] = [
                 // $item->id,
                 $item->token->user->name,
+                $item->token->user->storeName,
                 $item->consumer_name,
                 $item->contact_number,
-                $item->email,
-                $item->model?->model,
-                $item->query,
-                $item->type,
-                $item?->message,
-                $item->created_at,
-
-                // safe relation access
-                // $item->leads?->id,
-                $item->leads?->is_converted == 1 ? 'Yes' : 'No',
-                $item->leads?->imei,
-                $item->leads?->remarks,
+                $item->brand?->name,
+                $item->gender,
+                $item->age,
+                $item->pincode
             ];
         }
 
