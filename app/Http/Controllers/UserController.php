@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\DynamicExport;
+use App\Models\Brand;
 use App\Models\Lead;
 use App\Models\MobileModel;
 use App\Models\Otp;
@@ -13,6 +14,7 @@ use Carbon\Carbon;
 use DB;
 use Http;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
@@ -56,7 +58,7 @@ class UserController extends Controller
         try {
             $request->validate([
                 'name' => 'required',
-                'storeName' => 'required',
+                'storeName' => 'required|unique:users,storeName',
             ]);
 
             $user = User::create([
@@ -266,123 +268,38 @@ class UserController extends Controller
     public function report()
     {
         try {
-            $users = User::whereNot("role", "admin")->with([
-                'token.responses',
-                'token.responses.brand'
-            ])->get();
+            $users = User::whereNot("role", "admin")
+                ->with(['token.responses.brand'])
+                ->get();
 
             $result = [];
+            $allResponses = collect();
 
             foreach ($users as $user) {
 
+                // get all responses for this user
                 $responses = $user->tokenResponses;
-                // $leads = $user->leads;
-
-
-                // $totalResponses = $responses->count();
-                // $totalLeads = $responses->flatMap->lead->count();
-                // $totalConversions = $responses->flatMap->lead->where('is_converted', true)->count();
-
-
-                // $responsesPerModel = $responses
-                //     ->groupBy(fn($r) => $r->model?->model)
-                //     ->map(fn($r) => $r->count())
-                //     ->map(fn($count, $model) => [
-                //         'model' => $model,
-                //         'total_responses' => $count
-                //     ])
-                //     ->values();
-
-                // $leadsPerModel = $responses->groupBy(fn($r) => $r->model?->model)
-                //     ->map(fn($group) => $group->flatMap->lead)
-                //     ->map(fn($group, $model) => [
-                //         'model' => $model,
-                //         'total_leads' => $group->count(),
-                //     ])
-                //     ->values();
-
-                // $conversionsPerModel = $responses
-                //     ->groupBy(fn($r) => $r->model?->model)
-                //     ->map(function ($group) {
-                //         return $group->flatMap->lead->where('is_converted', true)->count();
-                //     })
-                //     ->map(fn($count, $model) => [
-                //         'model' => $model,
-                //         'total_conversions' => $count
-                //     ])
-                //     ->values();
-
-                // $responsesPerSource = $responses
-                //     ->groupBy('query')  //here source is saved in query
-                //     ->map(fn($r) => $r->count())
-                //     ->map(fn($count, $source) => [
-                //         'source' => $source,
-                //         'total_responses' => $count
-                //     ])
-                //     ->values();
-
-
-                // $responsePerModel = MobileModel::all()->map(function ($model) use ($responses) {
-                //     return [
-                //         "model" => $model->model,
-                //         "total_responses" => $responses->where("model_id", $model->id)->count(),
-                //         "total_leads" => $responses->where("model_id", $model->id)->flatMap->lead->count(),
-                //         "total_conversions" => $responses->where("model_id", $model->id)->flatMap->lead->where('is_converted', true)->count(),
-                //     ];
-                // });
-                // $leadsPerResponse = $totalResponses > 0
-                //     ? round($totalLeads / $totalResponses, 2)
-                //     : 0;
-
-                // $newUsers = $user->where('created_at', '>', Carbon::now()->subDays(7))->count();
-                // $increasePercentage = $newUsers > 0 ? round(($newUsers / $user->count()) * 100, 2) : 0;
-
-                // $newUserToday = $user->whereDate('created_at', Carbon::today())->count();
-
-                // $topModel = TokenResponse::select('model_id', DB::raw('COUNT(*) as total'))
-                //     ->groupBy('model_id')
-                //     ->orderByDesc('total')
-                //     ->with('model')
-                //     ->first();
-
-                // $recentLeadsCount = Lead::where('created_at', '>', Carbon::now()->subDays(2))->count();
-
-                // $totalResponse;
-                // if ($authUser->role == "admin") {
-                //     $totalResponse = TokenResponse::all()->count();
-                // }
-
-
+                $allResponses = $allResponses->merge($responses);
 
                 $result[] = [
                     "user_id" => $user->id,
                     "user_name" => $user->name,
-                    "total_responses" => $responses,
-                    // "total_leads" => $totalLeads,
-                    // "total_conversions" => $totalConversions,
-                    // "leads_per_response" => $leadsPerResponse,
-                    // "responses_per_model" => $responsesPerModel,
-                    // "leads_per_model" => $leadsPerModel,
-                    // "conversions_per_model" => $conversionsPerModel,
-                    // "responsesPerSource" => $responsesPerSource,
-                    // "responses" => $responsePerModel,
-
+                    "total_responses" => $responses->count(),
+                    'responses' => $responses
                 ];
 
-
             }
+
+
+            $brands = Brand::withCount('responses')->get();
 
             return response()->json([
                 "message" => "Tracking data loaded successfully",
                 "status" => true,
                 "data" => $result,
-                // "meta" => [
-                //     "new_users_percentage" => $increasePercentage,
-                //     "newUserToday" => $newUserToday,
-                //     "topModel" => $topModel->model->model,
-                //     "recentLeadsCount" => $recentLeadsCount,
-                //     "totalResponse" => $totalResponse ?? null
-                // ]
+                "meta" => [
+                    "allBrands" => $brands
+                ]
             ], 200);
 
         } catch (\Exception $e) {
@@ -399,9 +316,11 @@ class UserController extends Controller
 
             $request->validate([
                 "id" => "required|exists:users,id",
-                'name' => 'required',
-                'storeName' => 'required',
-                // 'password' => 'required|min:8',
+                "name" => "required",
+                "storeName" => [
+                    "required",
+                    Rule::unique("users", "storeName")->ignore($request->id),
+                ],
             ]);
 
             $user = User::find($request->id);

@@ -11,4 +11,9 @@ class Brand extends Model
     protected $fillable = [
         "name"
     ];
+
+    public function responses()
+    {
+        return $this->hasMany(TokenResponse::class);
+    }
 }

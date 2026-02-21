@@ -21,8 +21,8 @@ class DynamicExport implements FromArray
 
         $excelData[] = [
             // 'ID',
-            'Name',
             'Store Name',
+            'Store Code',
             'Consumer Name',
             'Contact Number',
             'Brand',
