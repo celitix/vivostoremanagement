@@ -273,11 +273,11 @@ const SurveyForm = () => {
       return;
     }
 
-    if (!otpVerified) {
-      setErrors({ contact_number: "Verify mobile number" });
-      toast.error("Please verify your mobile number with OTP");
-      return;
-    }
+    // if (!otpVerified) {
+    //   setErrors({ contact_number: "Verify mobile number" });
+    //   toast.error("Please verify your mobile number with OTP");
+    //   return;
+    // }
 
     if (!formData.gender.trim()) {
       setErrors({ gender: "Gender required" });
@@ -573,10 +573,10 @@ const SurveyForm = () => {
                       }))
                     }
                     icon={<Smartphone className="w-5 h-5 text-gray-500" />}
-                    disabled={otpVerified}
+                    // disabled={otpVerified}
                   />
 
-                  {!otpVerified && otpSent ? (
+                  {/* {!otpVerified && otpSent ? (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -637,7 +637,7 @@ const SurveyForm = () => {
                       <CheckCircle2 className="w-6 h-6" />
                       Verified Successfully
                     </div>
-                  )}
+                  )} */}
                 </div>
                 <InputField
                   label="Enter Your Age"
@@ -675,7 +675,7 @@ const SurveyForm = () => {
 
 
                 <DropdownWithSearch
-                  label="Interested Brand"
+                  label="Current Mobile Brand"
                   placeholder="Choose brand"
                   value={formData.brand_id}
                   onChange={(v) =>
