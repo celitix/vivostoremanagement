@@ -191,7 +191,7 @@ export const verifyOtp = async (data) => {
 
 // Create Model
 export const createModel = async (data) => {
-  return await fetchWithAuth(`/model`, {
+  return await fetchWithAuth(`/brand`, {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -199,7 +199,7 @@ export const createModel = async (data) => {
 
 // Update Model
 export const updateModel = async (data) => {
-  return await fetchWithAuth(`/model`, {
+  return await fetchWithAuth(`/brand`, {
     method: "PUT",
     body: JSON.stringify(data),
   });
@@ -207,21 +207,21 @@ export const updateModel = async (data) => {
 
 // Delete
 export const deleteModel = async (id) => {
-  return await fetchWithAuth(`/model/${id}`, {
+  return await fetchWithAuth(`/brand/${id}`, {
     method: "DELETE",
   });
 };
 
 // Restore Deleted Model
 export const restoreDeletedModel = async (id) => {
-  return await fetchWithAuth(`/model/restore/${id}`, {
+  return await fetchWithAuth(`/brand/restore/${id}`, {
     method: "POST",
   });
 };
 
 // Get Model
 export const getModel = async (data) => {
-  return await fetchWithAuth(`/model`, {
+  return await fetchWithAuth(`/brand`, {
     method: "GET",
   });
 };
@@ -229,7 +229,7 @@ export const getModel = async (data) => {
 // Get Model
 export const getModelPublic = async (data) => {
   try {
-    const res = await api.get("/model", data);
+    const res = await api.get("/brand", data);
     return res.data;
   } catch (err) {
     console.error("Error:", err);
@@ -239,14 +239,14 @@ export const getModelPublic = async (data) => {
 
 // Get Deleted Model
 export const getDeletedModel = async (data) => {
-  return await fetchWithAuth(`/model/deleted`, {
+  return await fetchWithAuth(`/brand/deleted`, {
     method: "GET",
   });
 };
 
 // Delete Deleted Model Permanent
 export const deleteDeletedModelPermanent = async (data) => {
-  return await fetchWithAuth(`/model/deleted/${data}`, {
+  return await fetchWithAuth(`/brand/deleted/${data}`, {
     method: "DELETE",
   });
 };

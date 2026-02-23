@@ -1,806 +1,336 @@
-import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { trackData } from "../apis/manageuser/manageuser";
-import { FaUserCheck } from "react-icons/fa";
-import { Bar, Pie, Doughnut } from "react-chartjs-2";
-// import {
-//   Chart as ChartJS,
-//   BarElement,
-//   ArcElement,
-//   CategoryScale,
-//   LinearScale,
-//   Tooltip,
-//   Legend,
-// } from "chart.js";
-import { FaUsers, FaChartLine } from "react-icons/fa";
-
-import {
-  RefreshCw,
-  Zap,
-  CheckCircle2,
-  BarChart2,
-  TrendingUp,
-} from "lucide-react";
-
-import { Grid, Card, CardContent, Typography } from "@mui/material";
-import Reports from "./AdminDashboardComponents/Reports";
-import ModelResponse from "./AdminDashboardComponents/ModelResponse";
-import { FaRegEnvelope } from "react-icons/fa";
-import { FaInstagram, FaFacebook, FaYoutube } from "react-icons/fa";
-import { FaMobileAlt } from "react-icons/fa";
+import { Bar } from "react-chartjs-2";
+import { FaStore, FaTag, FaUserEdit, FaSearch, FaHistory, FaPhoneAlt, FaMapMarkerAlt, FaFileExcel } from "react-icons/fa";
+import { RefreshCw, ChevronRight, Database, Layout, Calendar } from "lucide-react";
 import UniversalButton from "@/components/common/UniversalButton";
 import toast from "react-hot-toast";
-import UniversalSkeleton from "../components/ui/UniversalSkeleton";
-
-// Register Chart.js components
-// ChartJS.register(
-//   BarElement,
-//   ArcElement,
-//   CategoryScale,
-//   LinearScale,
-//   Tooltip,
-//   Legend
-// );
+import moment from "moment";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 const AdminDashboard = () => {
-  const [selectTab, setSelectTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
-  const [modelData, setModelData] = useState([]);
-  const [metaData, setMetaData] = useState(null);
+  const [brands, setBrands] = useState([]);
+  const [selectedStore, setSelectedStore] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const mainTabs = [
-    { id: 0, label: "Users" },
-    { id: 1, label: "Responses" },
-    { id: 2, label: "Leads" },
-    { id: 3, label: "Source" },
-  ];
-
-  const trackLeadData = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
       const res = await trackData();
       if (res.status === true) {
-        // await new Promise((resolve) => setTimeout(resolve, 3000));
-        setData(res.data);
-        setMetaData(res.meta);
-        toast.success("Latest Metrics Loaded Successfully!");
+        setData(res.data || []);
+        setBrands(res.meta?.allBrands || []);
+        // Set default selection to the first store with actual responses
+        if (!selectedStore) {
+          const firstWithData = res.data.find(s => s.total_responses > 0);
+          setSelectedStore(firstWithData || res.data[0]);
+        }
       }
     } catch (error) {
-      console.log("error", error);
+      toast.error("Failed to sync Brand Tracking data");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    trackLeadData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
+  // --- EXCELJS EXPORT LOGIC ---
+  const handleExportExcel = async () => {
+    if (!selectedStore || selectedStore.responses.length === 0) return;
 
-  // ****************data seggregation ****************
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Submissions");
 
-  useEffect(() => {
-    if (data) {
-      // Flatten all responses
-      const allResponses = data.flatMap((d) =>
-        d.responses.map((response) => ({
-          user_id: d.user_id,
-          user_name: d.user_name,
-          model: response.model,
-          total_responses: Number(response.total_responses || 0),
-          total_leads: Number(response.total_leads || 0),
-          total_conversions: Number(response.total_conversions || 0),
-        }))
-      );
+    // 1. Define Columns
+    worksheet.columns = [
+      { header: "Sr No", key: "srno", width: 10 },
+      { header: "Store Name", key: "store", width: 25 },
+      { header: "Consumer Name", key: "name", width: 25 },
+      { header: "Contact Number", key: "contact", width: 20 },
+      { header: "Brand", key: "brand", width: 15 },
+      { header: "Gender", key: "gender", width: 12 },
+      { header: "Age", key: "age", width: 10 },
+      { header: "Pincode", key: "pin", width: 15 },
+      { header: "Date", key: "date", width: 15 },
+      { header: "Time", key: "time", width: 15 },
+    ];
 
-      // Aggregate counts by model
-      const aggregated = {};
+    // 2. Style the Header Row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "4F46E5" }, // Indigo Theme
+    };
+    headerRow.alignment = { vertical: "middle", horizontal: "center" };
 
-      allResponses.forEach((res) => {
-        if (!res.model) return; // skip empty model names
-
-        if (!aggregated[res.model]) {
-          aggregated[res.model] = { ...res }; // create a new object
-        } else {
-          // sum up the counts
-          aggregated[res.model].total_responses += res.total_responses;
-          aggregated[res.model].total_leads += res.total_leads;
-          aggregated[res.model].total_conversions += res.total_conversions;
-        }
+    // 3. Add Data Rows
+    selectedStore.responses.forEach((resp, index) => {
+      const brandObj = brands.find(b => b.id === resp.brand_id);
+      worksheet.addRow({
+        srno: index + 1,
+        store: selectedStore.user_name,
+        name: resp.consumer_name,
+        contact: resp.contact_number,
+        brand: brandObj?.name || "N/A",
+        gender: resp.gender,
+        age: resp.age,
+        pin: resp.pincode,
+        date: moment(resp.created_at).format("DD-MM-YYYY"),
+        time: moment(resp.created_at).format("hh:mm A"),
       });
+    });
 
-      const uniqueModelResponses = Object.values(aggregated);
+    // 4. Zebra Striping for Rows
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1 && rowNumber % 2 === 0) {
+        row.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "F9FAFB" },
+        };
+      }
+    });
 
-      setModelData(uniqueModelResponses);
-    }
-  }, [data]);
-
-  // leads data
-  const leadsData = data.map((d) => d.leads_per_model);
-  const totalLeads = leadsData
-    .flat()
-    .reduce((acc, curr) => acc + (curr.total_leads || 0), 0);
-
-  //source data
-  const source = data.map((d) => d.responsesPerSource);
-
-  const flattened = source.flatMap((arr) => arr); // removes inner array layers
-
-  // Now filter counts
-  const instagramCount = flattened
-    .filter((item) => item?.source?.toLowerCase() === "instagram")
-    .reduce((sum, item) => sum + item.total_responses, 0);
-
-  const facebookCount = flattened
-    .filter((item) => item?.source?.toLowerCase() === "facebook")
-    .reduce((sum, item) => sum + item.total_responses, 0);
-
-  const youtubeCount = flattened
-    .filter((item) => item?.source?.toLowerCase() === "youtube")
-    .reduce((sum, item) => sum + item.total_responses, 0);
-
-  const sourceResponseData = {
-    labels: ["Facebook", "YouTube", "Instagram"],
-    datasets: [
-      {
-        label: "Lead Sources",
-        data: [facebookCount, youtubeCount, instagramCount],
-        backgroundColor: [
-          "rgba(59, 130, 246, 0.6)", // blue (facebook)
-          "rgba(239, 68, 68, 0.6)", // red (youtube)
-          "rgba(168, 85, 247, 0.6)", // purple (instagram)
-        ],
-        borderColor: [
-          "rgba(59, 130, 246, 1)",
-          "rgba(239, 68, 68, 1)",
-          "rgba(168, 85, 247, 1)",
-        ],
-        borderWidth: 2,
-        hoverOffset: 10,
-      },
-    ],
+    // 5. Generate and Download
+    const buffer = await workbook.xlsx.writeBuffer();
+    const fileName = `${selectedStore.user_name}_Submissions.xlsx`;
+    saveAs(new Blob([buffer]), fileName);
+    toast.success("Excel Report Exported!");
   };
 
-  const modelResponseData = {
-    labels: modelData.map((item) => item.model), // X-axis → model names
-    datasets: [
-      {
-        label: "Total Responses",
-        data: modelData.map((item) => item.total_responses), // Y-axis → response count
-        backgroundColor: "#4F46E5",
-      },
-    ],
-  };
+  // --- BRAND ANALYTICS GRAPH DATA ---
+  const brandChartData = useMemo(() => ({
+    labels: brands.map(b => b.name),
+    datasets: [{
+      label: 'Total Form Submissions',
+      data: brands.map(b => b.responses_count),
+      backgroundColor: [
+        'rgba(79, 70, 229, 0.8)', // Indigo
+        'rgba(6, 182, 212, 0.8)', // Cyan
+        'rgba(139, 92, 246, 0.8)', // Violet
+        'rgba(236, 72, 153, 0.8)', // Pink
+        'rgba(245, 158, 11, 0.8)', // Amber
+        'rgba(16, 185, 129, 0.8)', // Emerald
+        'rgba(59, 130, 246, 0.8)', // Blue
+      ],
+      borderRadius: 12,
+      borderSkipped: false,
+    }]
+  }), [brands]);
+
+  const filteredStores = data.filter(s => s.user_name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const DashboardSkeleton = () => (
-    <div className="w-full p-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* ---------------- LEFT MAIN PANEL SKELETON ---------------- */}
-        <div className="col-span-4 md:col-span-3 bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-          {/* Dashboard Header Skeleton */}
-          <div className="flex items-center justify-between mb-8">
-            <UniversalSkeleton height="3rem" width="w-24" />
-            <UniversalSkeleton height="1.5rem" width="w-64" />
-          </div>
-
-          {/* Tabs Skeleton */}
-          <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-2">
-            <div className="flex gap-4">
-              <UniversalSkeleton
-                height="2rem"
-                width="w-20"
-                className="rounded-full"
-              />
-              <UniversalSkeleton
-                height="2rem"
-                width="w-24"
-                className="rounded-full"
-              />
-              <UniversalSkeleton
-                height="2rem"
-                width="w-20"
-                className="rounded-full"
-              />
-              <UniversalSkeleton
-                height="2rem"
-                width="w-24"
-                className="rounded-full"
-              />
-            </div>
-            <UniversalSkeleton height="2rem" width="w-32" />
-          </div>
-
-          {/* Stats Cards Skeleton (Based on selectTab === 0 view) */}
-          <div className="mt-6 grid grid-cols-2 gap-6">
-            {/* Card 1 */}
-            <UniversalSkeleton
-              height="9rem"
-              width="w-full"
-              className="col-span-2 md:col-span-1"
-            />
-            {/* Card 2 */}
-            <UniversalSkeleton
-              height="9rem"
-              width="w-full"
-              className="col-span-2 md:col-span-1"
-            />
-          </div>
-
-          {/* Charts Skeleton */}
-          <div className="mt-8 grid grid-cols-2 gap-6">
-            {/* Chart 1 */}
-            <div className="rounded-2xl bg-white shadow-lg p-6 border border-gray-100 flex flex-col items-center col-span-2 md:col-span-1">
-              <UniversalSkeleton
-                height="1.5rem"
-                width="w-1/2"
-                className="mb-4"
-              />
-              <UniversalSkeleton height="10rem" width="w-full" />
-            </div>
-            {/* Chart 2 */}
-            <div className="rounded-2xl bg-white shadow-lg p-6 border border-gray-100 flex flex-col items-center col-span-2 md:col-span-1">
-              <UniversalSkeleton
-                height="1.5rem"
-                width="w-1/2"
-                className="mb-4"
-              />
-              <UniversalSkeleton height="10rem" width="w-full" />
-            </div>
-          </div>
-
-          {/* Table/ModelResponse Skeleton (Example height) */}
-          <div className="mt-8">
-            <UniversalSkeleton height="2rem" width="w-full" className="mb-4" />
-            <UniversalSkeleton height="15rem" width="w-full" />
-          </div>
-        </div>
-
-        {/* ---------------- RIGHT PANEL SKELETON ---------------- */}
-        <div className="col-span-4 md:col-span-1 bg-white p-6 rounded-xl shadow-lg border border-gray-100 flex flex-col gap-6">
-          <UniversalSkeleton height="1.5rem" width="w-1/2" className="mb-2" />
-
-          {/* Quick Insight Cards */}
-          <UniversalSkeleton height="5rem" width="w-full" />
-          <UniversalSkeleton height="5rem" width="w-full" />
-          <UniversalSkeleton height="5rem" width="w-full" />
-          <UniversalSkeleton height="5rem" width="w-full" />
-        </div>
+    <div className="w-full max-w-[1600px] mx-auto p-4 lg:p-8 space-y-8 animate-pulse">
+      <div className="bg-white p-8 rounded-[2.5rem] h-28 w-full shadow-sm" />
+      <div className="h-80 bg-white rounded-[3rem] shadow-sm w-full" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 h-[30rem] bg-white rounded-[2.5rem]" />
+        <div className="lg:col-span-4 h-[30rem] bg-white rounded-[2.5rem]" />
       </div>
     </div>
   );
 
-  const DynamicLoadingHeader = () => {
-    const [currentStep, setCurrentStep] = useState(0);
-    const steps = [
-      {
-        icon: TrendingUp,
-        text: "Analyzing latest user trends...",
-        color: "text-blue-600",
-      },
-      {
-        icon: BarChart2,
-        text: "Calculating model wise responses...",
-        color: "text-indigo-600",
-      },
-      {
-        icon: Zap,
-        text: "Fetching real-time quick insights...",
-        color: "text-teal-600",
-      },
-      {
-        icon: CheckCircle2,
-        text: "Validating data integrity...",
-        color: "text-green-600",
-      },
-    ];
-
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentStep((prev) => (prev + 1) % steps.length);
-      }, 1500); // Change every 1.5 seconds
-
-      return () => clearInterval(interval);
-    }, []);
-
-    const StepIcon = steps[currentStep].icon;
-
-    return (
-      <div className="flex items-center justify-start gap-4 mb-8">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, scale: 0.5, rotate: -45 }}
-          animate={{ opacity: 1, scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 15 }}
-          className={`p-3 rounded-full bg-white shadow-xl ${steps[currentStep].color}`}
-        >
-          <StepIcon size={24} className="animate-pulse" />
-        </motion.div>
-
-        <motion.div
-          key={steps[currentStep].text}
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="flex flex-col"
-        >
-          <h2 className="text-xl font-semibold text-gray-700">
-            Loading Dashboard
-          </h2>
-          <p className={`text-sm font-medium ${steps[currentStep].color}`}>
-            {steps[currentStep].text}
-          </p>
-        </motion.div>
-      </div>
-    );
-  };
+  if (loading && data.length === 0) return <DashboardSkeleton />;
 
   return (
-    <>
-      {loading ? (
-        // <div className="min-h-screen flex items-center justify-center">
-        //   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        //     <motion.div
-        //       initial={{ scale: 0.9, opacity: 0 }}
-        //       animate={{ scale: 1, opacity: 1 }}
-        //       transition={{ type: "spring", stiffness: 100 }}
-        //       className="p-10 rounded-2xl bg-white shadow-2xl border border-gray-100"
-        //     >
-        //       <DynamicLoadingHeader />
-        //     </motion.div>
-        //   </motion.div>
-        // </div>
-        <div className="min-h-screen flex items-center justify-center">
-          <DashboardSkeleton />
-        </div>
-      ) : (
-        <div className="w-full p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* ---------------- LEFT MAIN PANEL ---------------- */}
-            <div className="col-span-4 md:col-span-3 bg-gray-50 p-6 rounded-xl shadow-sm">
-              {/* Dashboard Header */}
-              <div className="flex items-center md:justify-between mb-8 flex-wrap justify-center">
-                <img src="/vivologonew.png" alt="vivo" className="h-12" />
-                <h2 className="text-2xl font-semibold text-gray-700">
-                  Yingjia Communication Pvt. Ltd.
-                </h2>
-              </div>
-              {/* Tabs */}
-              <div className="overflow-x-auto whitespace-nowrap scrollbar-thin flex justify-between">
-                <div className="flex gap-4 relative pb-2 w-max">
-                  {mainTabs.map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setSelectTab(t.id)}
-                      className={`relative px-4 py-1 text-lg font-medium transition-all duration-300 rounded-full z-10
-                  ${selectTab === t.id
-                          ? "text-white"
-                          : "text-gray-500 hover:text-gray-700"
-                        }`}
-                    >
-                      {t.label}
+    <div className="w-full min-h-screen bg-[#F0F2F5] p-4 lg:p-4 font-sans selection:bg-blue-100 rounded-2xl">
+      <div className="max-w-[1600px] mx-auto">
 
-                      {/* Animated capsule */}
-                      {selectTab === t.id && (
-                        <motion.div
-                          layoutId="tab-capsule"
-                          className="absolute inset-0 rounded-full z-[-1]"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, #4f46e5, #6366f1, #818cf8)", // gradient color
-                          }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 30,
-                          }}
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center">
-                  <UniversalButton
-                    variant="secondary"
-                    label={loading ? "Refreshing..." : "Refresh"}
-                    disabled={loading}
-                    icon={
-                      <RefreshCw
-                        className={loading ? "animate-spin scale-x-[-1]" : ""}
-                        size="18px"
-                      />
-                    }
-                    onClick={() => trackLeadData()}
-                  />
-                </div>
-              </div>
-
-              {/* Stats Cards */}
-              {selectTab === 0 && (
-                <div className="mt-6 grid grid-cols-2 gap-6">
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                    className="relative rounded-3xl p-6 overflow-hidden shadow-lg text-white col-span-2 md:col-span-1"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #4f46e5, #6366f1, #818cf8)",
-                    }}
-                  >
-                    {/* Background Icon */}
-                    <FaUsers
-                      size={80}
-                      className="absolute opacity-10 right-4 top-4 transform rotate-12"
-                    />
-
-                    {/* Top Bar Accent */}
-                    <div className="absolute top-0 left-0 w-16 h-2 bg-white/50 rounded-tr-lg"></div>
-
-                    {/* Content */}
-                    <div className="relative z-10 flex flex-col justify-between h-full">
-                      <div className="flex justify-between items-center mb-2">
-                        <h2 className="text-sm font-medium text-white/90 uppercase">
-                          Total Users
-                        </h2>
-                        <div className="p-2 bg-white/20 rounded-full">
-                          <FaUsers size={20} />
-                        </div>
-                      </div>
-
-                      <p className="text-4xl font-bold">{data.length}</p>
-
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-2 mt-2 text-sm text-white/80"
-                      >
-                        <div className="text-green-300 font-semibold">
-                          {metaData?.new_users_percentage} %
-                        </div>
-                        <span>Since last week</span>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ scale: 1.04 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 200,
-                      damping: 20,
-                      delay: 0.1,
-                    }}
-                    className="relative rounded-3xl p-6 overflow-hidden shadow-xl text-white col-span-2 md:col-span-1"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #0d9488, #14b8a6, #2dd4bf)",
-                    }}
-                  >
-                    {/* Background silhouette icon */}
-                    <FaMobileAlt
-                      size={120}
-                      className="absolute opacity-10 right-2 top-2 rotate-12"
-                    />
-
-                    {/* Top badge */}
-                    <div className="absolute top-3 left-3 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold tracking-wide">
-                      Most Engaged Model
-                    </div>
-
-                    {/* Content */}
-                    <div className="relative z-10 flex flex-col justify-between h-full mt-4">
-                      <h2 className="text-sm font-medium uppercase text-white/90 mb-1 tracking-wide">
-                        Top Model
-                      </h2>
-
-                      {/* Model Name */}
-                      <p className="text-3xl font-bold leading-tight drop-shadow-sm">
-                        {metaData?.topModel || "N/A"}
-                      </p>
-
-                      {/* Sub info */}
-                      <motion.div
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-2 mt-4 text-sm text-white/90"
-                      >
-                        <span className="font-semibold text-white">
-                          {metaData?.topModel}
-                        </span>
-                        <span className="opacity-80">
-                          is trending highest today
-                        </span>
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-
-              {selectTab === 1 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  className="relative rounded-3xl p-6 overflow-hidden shadow-lg text-white mt-6"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #4f46e5, #6366f1, #818cf8)",
-                  }}
-                >
-                  {/* Background Icon */}
-                  <FaRegEnvelope
-                    size={80}
-                    className="absolute opacity-10 right-4 top-4 transform rotate-12"
-                  />
-
-                  {/* Top Bar Accent */}
-                  <div className="absolute top-0 left-0 w-16 h-2 bg-white/50 rounded-tr-lg"></div>
-
-                  {/* Content */}
-                  <div className="relative z-10 flex flex-col justify-between h-full">
-                    <div className="flex justify-between items-center mb-2">
-                      <h2 className="text-sm font-medium text-white/90 uppercase">
-                        Total Responses
-                      </h2>
-                      <div className="p-2 bg-white/20 rounded-full">
-                        <FaRegEnvelope size={20} />{" "}
-                        {/* Envelope icon for responses */}
-                      </div>
-                    </div>
-
-                    <p className="text-4xl font-bold">{metaData?.totalResponse}</p>
-
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center gap-2 mt-2 text-sm text-white/80"
-                    ></motion.div>
-                  </div>
-                </motion.div>
-              )}
-              {selectTab === 2 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  className="relative rounded-3xl p-6 overflow-hidden shadow-lg text-white mt-6"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #4f46e5, #6366f1, #818cf8)",
-                  }}
-                >
-                  {/* Background Icon */}
-                  <FaUsers
-                    size={80}
-                    className="absolute opacity-10 right-4 top-4 transform rotate-12"
-                  />
-
-                  {/* Top Accent */}
-                  <div className="absolute top-0 left-0 w-16 h-2 bg-white/50 rounded-tr-lg"></div>
-
-                  {/* Content */}
-                  <div className="relative z-10 flex flex-col justify-between h-full">
-                    <div className="flex justify-between items-center mb-2">
-                      <h2 className="text-sm font-medium text-white/90 uppercase">
-                        Total Leads
-                      </h2>
-                      <div className="p-2 bg-white/20 rounded-full">
-                        <FaUsers size={20} />
-                      </div>
-                    </div>
-
-                    <p className="text-4xl font-bold">{totalLeads}</p>
-                  </div>
-                </motion.div>
-              )}
-              {selectTab === 3 && (
-                <div className="grid grid-cols-3 gap-4 mt-6">
-                  {/* Instagram Card */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                    className="relative rounded-3xl p-6 overflow-hidden shadow-lg text-white col-span-3 md:col-span-1"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #e879f9, #d946ef, #c084fc)", // softer insta gradient
-                    }}
-                  >
-                    <FaInstagram
-                      size={80}
-                      className="absolute opacity-10 right-4 top-4 rotate-12"
-                    />
-
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-center">
-                        <h2 className="text-sm font-medium uppercase text-white/90">
-                          Instagram
-                        </h2>
-                        <div className="p-2 bg-white/20 rounded-full">
-                          <FaInstagram size={20} />
-                        </div>
-                      </div>
-
-                      <p className="text-4xl font-bold mt-2">
-                        {instagramCount}
-                      </p>
-                    </div>
-                  </motion.div>
-
-                  {/* Facebook Card */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                    className="relative rounded-3xl p-6 overflow-hidden shadow-lg text-white col-span-3 md:col-span-1"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #1e3a8a, #3b82f6, #93c5fd)",
-                    }}
-                  >
-                    <FaFacebook
-                      size={80}
-                      className="absolute opacity-10 right-4 top-4 rotate-12"
-                    />
-
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-center">
-                        <h2 className="text-sm font-medium uppercase text-white/90">
-                          Facebook
-                        </h2>
-                        <div className="p-2 bg-white/20 rounded-full">
-                          <FaFacebook size={20} />
-                        </div>
-                      </div>
-
-                      <p className="text-4xl font-bold mt-2">{facebookCount}</p>
-                    </div>
-                  </motion.div>
-
-                  {/* YouTube Card */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                    className="relative rounded-3xl p-6 overflow-hidden shadow-lg text-white col-span-3 md:col-span-1"
-                    style={{
-                      background:
-                        "linear-gradient(135deg, #7f1d1d, #dc2626, #fca5a5)", // deep red → soft salmon
-                    }}
-                  >
-                    <FaYoutube
-                      size={80}
-                      className="absolute opacity-10 right-4 top-4 rotate-12"
-                    />
-
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-center">
-                        <h2 className="text-sm font-medium uppercase text-white/90">
-                          YouTube
-                        </h2>
-                        <div className="p-2 bg-white/20 rounded-full">
-                          <FaYoutube size={20} />
-                        </div>
-                      </div>
-
-                      <p className="text-4xl font-bold mt-2">{youtubeCount}</p>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-
-              {/* Charts */}
-              <div className="mt-8 grid grid-cols-2 gap-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl bg-white shadow-lg p-6 border border-gray-100 flex flex-col items-center col-span-2 md:col-span-1"
-                >
-                  <h3 className="text-gray-700 font-semibold mb-4">
-                    Model Wise Responses
-                  </h3>
-                  <div className="w-full h-64">
-                    <Bar
-                      data={modelResponseData}
-                      options={{ maintainAspectRatio: false }}
-                    />
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-2xl bg-white shadow-lg p-6 border border-gray-100 flex flex-col items-center col-span-2 md:col-span-1"
-                >
-                  <h3 className="text-gray-700 font-semibold mb-4">
-                    Responses By Source
-                  </h3>
-                  <div className="w-full h-64">
-                    <Doughnut
-                      data={sourceResponseData}
-                      options={{ maintainAspectRatio: false }}
-                    />
-                  </div>
-                </motion.div>
-              </div>
-
-              <ModelResponse data={data} />
+        {/* --- PROFESSIONAL LOGO HEADER --- */}
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-white mb-8 flex flex-col md:flex-row justify-between items-center gap-6 flex-wrap">
+          <div className="flex items-center gap-6 flex-wrap justify-center">
+            <div className="p-2  rounded-2xl">
+              <img src="/vivologonew.png" alt="vivo" className="h-12 w-auto object-contain" />
             </div>
-
-            {/* ---------------- RIGHT PANEL ---------------- */}
-            <div className="col-span-4 md:col-span-1 bg-gray-50 p-6 rounded-xl shadow-sm flex flex-col gap-6">
-              <h2 className="text-lg font-semibold text-gray-700 mb-2">
-                Quick Insights
+            <div className="h-12 w-[2px] bg-slate-100 hidden md:block"></div>
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-800 tracking-tight leading-none items-center">
+                Yingjia Communication Pvt. Ltd.
               </h2>
+              <p className="text-blue-600 text-[11px] font-medium uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                <Database size={12} /> Enterprise Brand Tracking
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <div className="relative group">
+              <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              <input
+                type="text"
+                placeholder="Search store identity..."
+                className="pl-12 pr-6 py-3 bg-slate-50 border-transparent rounded-2xl text-sm outline-none w-64 focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all shadow-inner"
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <UniversalButton
+              variant="primary"
+              label="Sync Analytics"
+              icon={<RefreshCw className={loading ? "animate-spin" : ""} size="18px" />}
+              onClick={fetchData}
+            />
+          </div>
+        </div>
 
-              {/* Example: Recent Users */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
-                className="rounded-xl bg-white p-4 shadow-md border border-gray-100"
-              >
-                <h3 className="text-gray-600 text-sm font-medium">
-                  New Users Today
+
+
+        {/* --- TWO COLUMN DATA SECTION --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-8">
+
+          {/* STORE LIST TABLE */}
+          <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-[2.5rem] shadow-sm border border-white overflow-hidden">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-3">
+                <FaStore className="text-blue-500" /> Store-Wise Link Tracking
+              </h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/50 text-slate-400 text-[10px] uppercase font-medium tracking-widest">
+                  <tr>
+                    <th className="px-8 py-5">Store Name</th>
+                    <th className="px-8 py-5">Activity Count</th>
+                    <th className="px-8 py-5 text-right text-nowrap">View Data</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredStores.map((store) => (
+                    <tr
+                      key={store.user_id}
+                      className={`group transition-all cursor-pointer hover:bg-blue-50/40 ${selectedStore?.user_id === store.user_id ? 'bg-blue-50/80' : ''}`}
+                      onClick={() => setSelectedStore(store)}
+                    >
+                      <td className="px-8 py-6 font-bold text-slate-700 text-nowrap">{store.user_name}</td>
+                      <td className="px-8 py-6">
+                        <span className={`inline-flex items-center px-4 py-1 rounded-full text-[11px] text-nowrap font-medium ${store.total_responses > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+                          {store.total_responses} Submissions
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="inline-flex p-2 rounded-xl bg-slate-100 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-sm">
+                          <ChevronRight size={18} />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* RESPONSE FEED (DETAILS) */}
+          <div className="lg:col-span-5 xl:col-span-4 h-full">
+            <div className="bg-white rounded-[2.5rem] shadow-xl border border-white p-6 sticky top-5">
+              <div className="flex items-center md:justify-between justify-center mb-8 flex-wrap gap-5 w-full">
+                <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-3">
+                  <FaHistory className="text-blue-500" /> Form Data Feed
                 </h3>
-                <p className="text-2xl font-bold mt-1 text-blue-600">
-                  {metaData?.newUserToday}
-                </p>
-              </motion.div>
+                {selectedStore?.responses.length > 0 && (
+                  <button
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-md cursor-pointer"
+                  >
+                    <FaFileExcel /> Export
+                  </button>
+                )}
+              </div>
 
-              {/* Example: Top Performing Model */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
-                className="rounded-xl bg-white p-4 shadow-md border border-gray-100"
-              >
-                <h3 className="text-gray-600 text-sm font-medium">Top Model</h3>
-                <p className="text-xl font-semibold mt-1 text-green-600">
-                  {metaData?.topModel}
-                </p>
-              </motion.div>
+              <AnimatePresence mode="wait">
+                {selectedStore ? (
+                  <motion.div key={selectedStore.user_id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
+                    {/* <div className="p-6 bg-[#4A5FA7] rounded-[2rem] text-white shadow-lg mb-6"> */}
+                    <div className="p-6 bg-gray-900 rounded-[2rem] text-white shadow-lg mb-6">
+                      <p className="text-[10px] font-medium uppercase opacity-40 mb-1 tracking-widest">Tracking Source</p>
+                      <h4 className="text-xl font-bold truncate">{selectedStore.user_name}</h4>
+                    </div>
 
-              {/* Example: Recent Leads */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
-                className="rounded-xl bg-white p-4 shadow-md border border-gray-100"
-              >
-                <h3 className="text-gray-600 text-sm font-medium">
-                  Recent Leads
-                </h3>
-                <p className="text-xl font-semibold mt-1 text-purple-600">
-                  {metaData?.recentLeadsCount}
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ scale: 1.02 }}
-                className="rounded-xl bg-white p-4 shadow-md border border-gray-100"
-              >
-                <h3 className="text-gray-600 text-sm font-medium">
-                  Total Models
-                </h3>
-                <p className="text-xl font-semibold mt-1 text-purple-600">
-                  {modelData?.length}
-                </p>
-              </motion.div>
+                    <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                      {selectedStore.responses.length > 0 ? selectedStore.responses.map((resp) => {
+                        const brandObj = brands.find(b => b.id === resp.brand_id);
+                        return (
+                          <div key={resp.id} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 group hover:border-blue-200 transition-all relative overflow-hidden">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-blue-500 shadow-sm">
+                                <FaUserEdit size={18} />
+                              </div>
+                              <span className="bg-blue-600 text-white text-[10px] font-semibold tracking-wider px-3 py-1 rounded-full uppercase">
+                                {brandObj?.name || 'N/A'}
+                              </span>
+                            </div>
+                            <p className="font-medium text-slate-800 text-sm mb-4">{resp.consumer_name}</p>
+                            <div className="grid grid-cols-2 gap-4 border-t border-slate-200/60 pt-4">
+                              <div className="space-y-1">
+                                <p className="text-[9px] font-medium text-slate-400 uppercase flex items-center gap-1"><FaPhoneAlt size={8} /> Phone</p>
+                                <p className="text-xs font-bold text-slate-600">{resp.contact_number}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[9px] font-medium text-slate-400 uppercase flex items-center gap-1"><Calendar size={8} /> Submitted At</p>
+                                <p className="text-xs font-bold text-slate-600">{moment(resp.created_at).format("DD-MM-YYYY HH:mm A")}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-[9px] font-medium text-slate-400 uppercase flex items-center gap-1"><FaMapMarkerAlt size={8} /> Pin</p>
+                                <p className="text-xs font-bold text-slate-600">{resp.pincode}</p>
+                              </div>
+                              <div className="col-span-2 flex gap-4 mt-2">
+                                <span className="bg-white px-3 py-1 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-500 uppercase">{resp.gender}</span>
+                                <span className="bg-white px-3 py-1 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-500 uppercase">{resp.age} Years</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }) : (
+                        <div className="text-center py-20 opacity-40">
+                          <Database size={40} className="mx-auto mb-4" />
+                          <p className="font-bold text-sm">No submissions recorded at this store.</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="text-center py-20 text-slate-400 font-medium italic">
+                    Select a tracking point to view consumer form submissions.
+                  </div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
-      )}
-    </>
+
+        {/* --- BRAND ANALYTICS GRAPH (TOP FOCUS) --- */}
+        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-white mb-8">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-3">
+              <Layout className="text-blue-500" size={20} /> Overall Brand Submission Performance
+            </h3>
+            <div className="flex gap-2">
+              <span className="bg-blue-50 text-blue-700 px-4 py-1 rounded-full text-[10px] font-bold uppercase">
+                {brands.length} Total Brands
+              </span>
+            </div>
+          </div>
+          <div className="h-[320px] w-full">
+            <Bar
+              data={brandChartData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                  y: { beginAtZero: true, grid: { color: '#f1f5f9' }, border: { display: false } },
+                  x: { grid: { display: false }, border: { display: false } }
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

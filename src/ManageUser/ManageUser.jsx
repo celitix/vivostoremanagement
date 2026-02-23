@@ -8,11 +8,9 @@ import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { User, RefreshCw } from "lucide-react";
 import { FaLink } from "react-icons/fa6";
 import moment from "moment";
-import { FileSpreadsheet } from "lucide-react";
 import EditNoteIcon from "@mui/icons-material/EditNote";
-import { TbLockPassword } from "react-icons/tb";
 
-
+import { QRCodeCanvas } from "qrcode.react";
 import DataTable from "@/components/common/DataTable";
 import UniversalButton from "@/components/common/UniversalButton";
 import CustomTooltip from "@/components/common/CustomTooltip";
@@ -25,9 +23,8 @@ import {
   deleteUser,
   createUser,
   getUserUniqueTokenLink,
-  getUserFilledSurveyForms,
 } from "@/apis/manageuser/manageuser";
-import { updateUser, updateUserPassword } from "../apis/manageuser/manageuser";
+import { updateUser } from "../apis/manageuser/manageuser";
 
 
 const ManageUser = () => {
@@ -38,11 +35,9 @@ const ManageUser = () => {
   const [loadingAdd, setLoadingAdd] = useState(false);
   const [userToken, setUserToken] = useState("");
 
-  const navigate = useNavigate();
-
-  const [openPasswordDialog, setOpenPasswordDialog] = useState(false);
-  const [loadingPassword, setLoadingPassword] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [qrVisible, setQrVisible] = useState(false);
+  const [qrValue, setQrValue] = useState("");
+  const [qrStoreName, setQrStoreName] = useState("");
 
 
   const [editMode, setEditMode] = useState(false);
@@ -50,27 +45,23 @@ const ManageUser = () => {
   const [addUserDialog, setAddUserDialog] = useState(false);
   const [addUser, setAddUser] = useState({
     name: "",
-    email: "",
-    mobile: "",
-    password: "",
+    storeName: ""
   });
 
   const handleAdd = () => {
     setEditMode(false);
     setEditData(null);
-    setAddUser({ name: "", mobile: "", email: "", password: "" });
+    setAddUser({ name: "", storeName: "" });
     setAddUserDialog(true);
   };
 
   const handleSaveUser = async () => {
-    const { name, email, mobile, password } = addUser;
+    const { name, storeName } = addUser;
 
-    if (!name) return toast.error("storename is required!");
+    if (!name) return toast.error("Please enter store name!");
 
-    // if (!mobile.trim()) return toast.error("Please enter Mobile No!");
-    // if (!email.trim()) return toast.error("Please enter email address!");
-    if (!email.trim()) return toast.error("Please enter contact person name!");
-    // if (!password.trim()) return toast.error("Please enter user password!");
+    if (!storeName) return toast.error("storecode is required!");
+
 
     try {
       setLoadingAdd(true);
@@ -79,18 +70,14 @@ const ManageUser = () => {
       if (editMode) {
         const payload = {
           id: editData.id,
+          storeName: storeName,
           name: name,
-          email: email,
-          // password: password,
-          // mobile: mobile,
         };
         response = await updateUser(payload);
       } else {
         const payload = {
+          storeName: storeName,
           name: name,
-          email: email,
-          // mobile: mobile,
-          // password: password,
         };
         response = await createUser(payload);
       }
@@ -105,7 +92,12 @@ const ManageUser = () => {
         fetchUserList();
         setAddUserDialog(false);
       } else {
-        toast.error(response?.message || "Failed to save store!");
+        // toast.error(response?.message || "Failed to save store!");
+        if (response?.message === "The store name has already been taken.") {
+          toast.error("The store code has already been taken.");
+        } else {
+          toast.error(response?.message || "Failed to save store!");
+        }
       }
     } catch (error) {
       console.log(error);
@@ -147,43 +139,10 @@ const ManageUser = () => {
 
     setAddUser({
       name: row.name || "",
-      // mobile: row.mobile || "",
-      email: row.email || "",
-      // password: row.password || "",
+      storeName: row.storeName || "",
     });
     setAddUserDialog(true);
   };
-
-  // const handleUpdatePasswordSave = async () => {
-  //   if (!addUser.password.trim()) {
-  //     toast.error("Please enter a password!");
-  //     return;
-  //   }
-
-  //   try {
-  //     setLoadingPassword(true);
-
-  //     const payload = {
-  //       id: selectedUserId,
-  //       password: addUser.password,
-  //     };
-
-  //     const res = await updateUserPassword(payload);
-
-  //     if (res?.status) {
-  //       toast.success("Password updated successfully!");
-  //       setOpenPasswordDialog(false);
-  //       setAddUser({ name: "", mobile: "", email: "", password: "" });
-  //     } else {
-  //       toast.error(res?.message || "Failed to update password.");
-  //     }
-  //   } catch (err) {
-  //     console.error(err);
-  //     toast.error("Something went wrong.");
-  //   } finally {
-  //     setLoadingPassword(false);
-  //   }
-  // };
 
   const handleGenerateLink = async (row) => {
     try {
@@ -195,21 +154,26 @@ const ManageUser = () => {
         const shareableLink = `${baseUrl}/surveyform?token=${res.token}&name=${encodedName}`;
 
         setUserToken(res.token);
+        setQrValue(shareableLink);
+        setQrStoreName(row.storeName);
+        setQrVisible(true);
 
-        // Safely attempt to copy to clipboard
+        // if (navigator.clipboard && navigator.clipboard.writeText) {
+        //   try {
+        //     await navigator.clipboard.writeText(shareableLink);
+        //     toast.success("Link copied to clipboard!");
+        //   } catch (clipErr) {
+        //     console.warn("Clipboard copy failed:", clipErr);
+        //     toast.error(`Link generated: ${shareableLink}`);
+        //     fallbackCopyTextToClipboard(shareableLink);
+        //   }
+        // } else {
+        //   fallbackCopyTextToClipboard(shareableLink);
+        // }
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          try {
-            await navigator.clipboard.writeText(shareableLink);
-            toast.success("Link copied to clipboard!");
-          } catch (clipErr) {
-            console.warn("Clipboard copy failed:", clipErr);
-            toast.error(`Link generated: ${shareableLink}`);
-            fallbackCopyTextToClipboard(shareableLink);
-          }
+          await navigator.clipboard.writeText(shareableLink);
+          toast.success("Link copied & QR Generated!");
         } else {
-          // Fallback for older browsers or non-secure contexts
-          // toast.success(`Link generated: ${shareableLink}`);
-          // toast.success(`Link copied to clipboard`);
           fallbackCopyTextToClipboard(shareableLink);
         }
       } else {
@@ -220,7 +184,64 @@ const ManageUser = () => {
       toast.error("Something went wrong.");
     }
   };
+  // const downloadQRCode = () => {
+  //   const canvas = document.getElementById("store-qr-code");
+  //   const pngUrl = canvas
+  //     .toDataURL("image/png")
+  //     .replace("image/png", "image/octet-stream");
+  //   let downloadLink = document.createElement("a");
+  //   downloadLink.href = pngUrl;
+  //   downloadLink.download = `${qrStoreName}_QR.png`;
+  //   document.body.appendChild(downloadLink);
+  //   downloadLink.click();
+  //   document.body.removeChild(downloadLink);
+  // };
 
+  const downloadQRCode = () => {
+    const qrCanvas = document.getElementById("store-qr-code");
+    if (!qrCanvas) return;
+
+    // Create a new high-quality canvas for the download
+    const downloadCanvas = document.createElement("canvas");
+    const ctx = downloadCanvas.getContext("2d");
+
+    // Set dimensions (QR size + space for store name only)
+    const padding = 40;
+    const textSpace = 60; // Reduced space since we only have one line of text
+    downloadCanvas.width = qrCanvas.width + padding * 2;
+    downloadCanvas.height = qrCanvas.height + padding * 2 + textSpace;
+
+    // 1. Draw Background (White)
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, downloadCanvas.width, downloadCanvas.height);
+
+    // 2. Draw the QR Code from the original canvas
+    ctx.drawImage(qrCanvas, padding, padding);
+
+    // 3. Set Text Style
+    ctx.fillStyle = "#1f2937"; // Dark gray
+    ctx.textAlign = "center";
+
+    // Draw Store Name (Bold/Large)
+    ctx.font = "bold 24px Arial";
+    ctx.fillText(
+      qrStoreName,
+      downloadCanvas.width / 2,
+      qrCanvas.height + padding + 40
+    );
+
+    // 4. Generate Download
+    const pngUrl = downloadCanvas
+      .toDataURL("image/png")
+      .replace("image/png", "image/octet-stream");
+
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = `${qrStoreName}_QR.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
   // Fallback using execCommand (works in most browsers even without clipboard API)
   function fallbackCopyTextToClipboard(text) {
     const textArea = document.createElement("textarea");
@@ -250,44 +271,11 @@ const ManageUser = () => {
     document.body.removeChild(textArea);
   }
 
-
-
-  // const getSurveyFilledForms = async (row) => {
-  //   try {
-  //     const resToken = await getUserUniqueTokenLink(row.id);
-
-  //     if (!resToken?.token) {
-  //       toast.error("No token found");
-  //       return;
-  //     }
-  //     const token = resToken.token;
-  //     const res = await getUserFilledSurveyForms(token);
-
-  //     if (res?.tokenResponse) {
-  //       navigate("/surveyformreport", {
-  //         state: {
-  //           forms: res.tokenResponse,
-  //           user: row,
-  //           token,
-  //           meta: res.meta,
-  //         },
-  //       });
-  //     } else {
-  //       toast.error("No responses found");
-  //     }
-  //   } catch (err) {
-  //     console.log(err);
-  //     toast.error("Something went wrong");
-  //   }
-  // };
-
   const manageUsersColumns = [
     { Header: "Sr No", accessor: "srno", width: 50, flex: 0 },
-    { Header: "Name", accessor: "name", minWidth: 150, flex: 1 },
     { Header: "Created At", accessor: "created_at", minWidth: 180, flex: 1 },
-    { Header: "Mobile No", accessor: "mobile", minWidth: 180, flex: 1 },
-    { Header: "Email", accessor: "email", minWidth: 200, flex: 1 },
-    // { Header: "Password", accessor: "password", minWidth: 200, flex: 1 },
+    { Header: "Store Name", accessor: "name", minWidth: 150, flex: 1 },
+    { Header: "Store Code", accessor: "storeName", minWidth: 180, flex: 1 },
     {
       Header: "Action",
       accessor: "action",
@@ -300,16 +288,6 @@ const ManageUser = () => {
                 <EditNoteIcon sx={{ fontSize: "1.2rem", color: "gray" }} />
               </IconButton>
             </CustomTooltip>
-            {/* <CustomTooltip arrow title="Update password" placement="top">
-              <IconButton
-                onClick={() => {
-                  setSelectedUserId(row.id);
-                  setOpenPasswordDialog(true);
-                }}
-              >
-                <TbLockPassword sx={{ fontSize: "1.2rem", color: "gray" }} />
-              </IconButton>
-            </CustomTooltip> */}
 
             <CustomTooltip arrow title="Delete Store" placement="top">
               <IconButton onClick={() => handleDelete(row)}>
@@ -327,14 +305,6 @@ const ManageUser = () => {
                 />
               </IconButton>
             </CustomTooltip>
-            {/* <CustomTooltip arrow title="User Survey Forms" placement="top">
-              <IconButton onClick={() => getSurveyFilledForms(row)}>
-                <FileSpreadsheet
-                  className="text-blue-500 cursor-pointer hover:text-blue-600"
-                  size={20}
-                />
-              </IconButton>
-            </CustomTooltip> */}
           </>
         </div>
       ),
@@ -366,10 +336,8 @@ const ManageUser = () => {
     srno: index + 1,
     id: user.id,
     created_at: moment(user?.created_at).format("DD-MM-YYYY HH:mm A") || "-",
-    // mobile: user.mobile,
     name: user.name,
-    email: user.email,
-    // password: user.password,
+    storeName: user.storeName,
   }));
 
   return (
@@ -437,19 +405,18 @@ const ManageUser = () => {
         onHide={() => {
           setAddUserDialog(false);
           setEditMode(false);
-          setAddUser({ name: "", mobile: "", email: "", password: "" });
+          setAddUser({ name: "", storeName: "" });
         }}
         draggable={false}
       >
         <div className="space-y-4 w-full">
-          {/* Conditional display */}
           <div className="">
             <div className="space-y-4">
               <div className="flex flex-col flex-wrap gap-3">
                 <div className="flex flex-col items-center gap-3">
                   <InputField
                     label="Store Name"
-                    placeholder="Enter Store Name"
+                    placeholder="Enter store name"
                     value={addUser.name}
                     onChange={(e) =>
                       setAddUser((prev) => ({
@@ -458,53 +425,18 @@ const ManageUser = () => {
                       }))
                     }
                   />
-                  {/* <InputField
-                    label="Mobile No"
-                    placeholder="Enter MobileNo"
-                    value={addUser.mobile}
-                    onChange={(e) =>
-                      setAddUser((prev) => ({
-                        ...prev,
-                        mobile: e.target.value,
-                      }))
-                    }
-                  /> */}
-                  {/* <InputField
-                    label="Email"
-                    placeholder="Enter Email"
-                    value={addUser.email}
-                    onChange={(e) =>
-                      setAddUser((prev) => ({
-                        ...prev,
-                        email: e.target.value,
-                      }))
-                    }
-                  /> */}
                   <InputField
-                    label="Contact Person"
-                    placeholder="Enter contact person name"
-                    value={addUser.email}
+                    label="Store Code"
+                    placeholder="Enter Store Code"
+                    value={addUser.storeName}
                     onChange={(e) =>
                       setAddUser((prev) => ({
                         ...prev,
-                        email: e.target.value,
+                        storeName: e.target.value,
                       }))
                     }
                   />
 
-                  {/* {!editMode && (
-                    <InputField
-                      label="Password"
-                      placeholder="Enter Password"
-                      value={addUser.password}
-                      onChange={(e) =>
-                        setAddUser((prev) => ({
-                          ...prev,
-                          password: e.target.value,
-                        }))
-                      }
-                    />
-                  )} */}
                 </div>
               </div>
               <div className="flex justify-center">
@@ -528,39 +460,6 @@ const ManageUser = () => {
       </Dialog>
       {/* Add User End */}
 
-      {/* update user password start */}
-      {/* <Dialog
-        header={"Update User Password"}
-        visible={openPasswordDialog}
-        className="w-full md:w-200"
-        onHide={() => {
-          setOpenPasswordDialog(false);
-          setAddUser({ name: "", mobile: "", email: "", password: "" });
-        }}
-        draggable={false}
-      >
-        <div className="space-y-4 w-full">
-          <InputField
-            label="New Password"
-            placeholder="Enter New Password"
-            value={addUser.password}
-            onChange={(e) =>
-              setAddUser((prev) => ({ ...prev, password: e.target.value }))
-            }
-          />
-
-          <div className="flex justify-center">
-            <UniversalButton
-              label={loadingPassword ? "Updating..." : "Update Password"}
-              onClick={handleUpdatePasswordSave}
-              disabled={loadingPassword}
-            />
-          </div>
-        </div>
-      </Dialog> */}
-
-      {/* update user password End */}
-
       {/* Delete User Start */}
       <Dialog
         header="Confirm Delete"
@@ -581,7 +480,7 @@ const ManageUser = () => {
           </p>
 
           <div className="bg-gray-100 text-gray-800 font-medium rounded-md px-3 py-2 mb-4 w-full text-center break-words">
-            {selectedUser?.name || "Unnamed Store"}
+            {selectedUser?.storeName || "Unnamed Store"}
           </div>
 
           <p className="text-gray-500 text-sm">
@@ -612,6 +511,47 @@ const ManageUser = () => {
         </div>
       </Dialog>
       {/* Delete User End */}
+
+      {/* QR Code Dialog Start */}
+      <Dialog
+        header="Store QR Code"
+        visible={qrVisible}
+        onHide={() => setQrVisible(false)}
+        className="w-full md:w-96"
+        draggable={false}
+      >
+        <div className="flex flex-col items-center justify-center p-4">
+          <div className="bg-white p-2 rounded-lg shadow-sm border mb-4">
+            <QRCodeCanvas
+              id="store-qr-code"
+              value={qrValue}
+              size={250}
+              level={"H"}
+              includeMargin={false}
+            />
+          </div>
+
+          <h3 className="font-bold text-lg text-gray-800 mb-1">{qrStoreName}</h3>
+          <p className="text-xs text-gray-500 mb-6 break-all text-center px-4">
+            {qrValue}
+          </p>
+
+          <div className="flex gap-3 w-full">
+            <UniversalButton
+              label="Close"
+              variant="secondary"
+              className="w-full"
+              onClick={() => setQrVisible(false)}
+            />
+            <UniversalButton
+              label="Download QR"
+              className="w-full"
+              onClick={downloadQRCode}
+            />
+          </div>
+        </div>
+      </Dialog>
+      {/* QR Code Dialog End */}
     </>
   );
 };

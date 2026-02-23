@@ -103,18 +103,24 @@ const SurveyFormReportAll = () => {
     }, [page]);
 
     const columns = [
-        { Header: "Sr No", accessor: "srno", width: 80 },
-        { Header: "Created At", accessor: "created_at", minWidth: 180, flex: 1 },
+        { Header: "Sr No", accessor: "srno", width: 50, flex: 0 },
+        { Header: "Created At", accessor: "created_at", minWidth: 160, flex: 1 },
         {
-            Header: "VBA Name",
+            Header: "Store Name",
             accessor: "name",
+            minWidth: 150,
+            flex: 1,
+        },
+        {
+            Header: "Store Code",
+            accessor: "storeName",
             minWidth: 150,
             flex: 1,
         },
         {
             Header: "Consumer Name",
             accessor: "consumer_name",
-            minWidth: 150,
+            minWidth: 180,
             flex: 1,
         },
         {
@@ -123,58 +129,10 @@ const SurveyFormReportAll = () => {
             minWidth: 150,
             flex: 1,
         },
-        { Header: "Email", accessor: "email", minWidth: 200, flex: 1 },
-        { Header: "Model", accessor: "model", minWidth: 180, flex: 1 },
-        { Header: "Source", accessor: "query", minWidth: 180, flex: 1 },
-        { Header: "Query Type", accessor: "type", minWidth: 180, flex: 1 },
-        // { Header: "Feedback", accessor: "message", minWidth: 180, flex: 1 },
-        {
-            Header: "Feedback",
-            accessor: "message",
-            minWidth: 180,
-            flex: 1,
-            renderCell: (params) => {
-                return (
-                    <div
-                        style={{
-                            maxHeight: "100px",
-                            overflowY: "auto",
-                            padding: "2px",
-                            whiteSpace: "normal",
-                            wordBreak: "break-word",
-                            border: "1px solid #c3c3c3",
-                            borderRadius: "5px"
-                        }}
-                    >
-                        {params.row.message || "---"}
-                    </div>
-                );
-            },
-        },
-
-        { Header: "Status", accessor: "isCreated", minWidth: 180, flex: 1 },
-        {
-            Header: "Action",
-            accessor: "action",
-            flex: 1,
-            minWidth: 150,
-            renderCell: (params) => (
-                <div>
-                    <CustomTooltip title="View Lead" placement="top" arrow>
-                        <IconButton
-                            className="text-xs"
-                            onClick={() => {
-                                // handleView(params.row);
-                                setRowData(params.row);
-                                setOpenDialog(true);
-                            }}
-                        >
-                            <InfoOutlinedIcon sx={{ fontSize: "1.2rem", color: "green" }} />
-                        </IconButton>
-                    </CustomTooltip>
-                </div>
-            ),
-        },
+        { Header: "Age", accessor: "age", minWidth: 120, flex: 1 },
+        { Header: "Brand", accessor: "brand", minWidth: 180, flex: 1 },
+        { Header: "Gender", accessor: "gender", minWidth: 150, flex: 1 },
+        { Header: "Pincode", accessor: "pincode", minWidth: 140, flex: 1 },
     ];
 
 
@@ -183,12 +141,13 @@ const SurveyFormReportAll = () => {
         srno: ((metaData.current_page - 1) * metaData.per_page) + index + 1,
         created_at: moment(item.created_at).format("DD-MM-YYYY HH:mm A"),
         name: item.token?.user?.name || "-",
+        storeName: item.token?.user?.storeName || "-",
         consumer_name: item.consumer_name || "-",
         contact_number: item.contact_number || "-",
-        email: item.email || "-",
-        model: item.model?.model || "-",
-        query: item.query || "-",
-        type: item.type || "-",
+        age: item.age || "-",
+        brand: item.brand?.name || "-",
+        gender: item.gender || "-",
+        pincode: item.pincode || "-",
         isCreated: item.isCreated ? "Updated" : "Not Updated",
         lead_status: item.leads?.is_converted ? "Converted" : "Not Converted",
         lead_created_on: item.leads?.created_at
@@ -240,14 +199,14 @@ const SurveyFormReportAll = () => {
                 </div>
             </div>
             <div className="flex items-end lg:justify-between mb-5 lg:flex-nowrap flex-wrap justify-center gap-5">
-                <div className="flex items-end gap-5 flex-wrap justify-center pl-8" >
+                <div className="flex items-end gap-5 flex-wrap justify-center">
 
                     <div className="w-full sm:w-56">
                         <DropdownWithSearch
                             id="manageuser"
                             name="manageuser"
-                            label="Select User"
-                            tooltipContent="Select user you want to recharge"
+                            label="Select Store"
+                            tooltipContent="Select store you want to search"
                             tooltipPlacement="right"
                             options={allUsers
                                 .slice()
@@ -258,7 +217,7 @@ const SurveyFormReportAll = () => {
                                 }))}
                             value={selectedUser}
                             onChange={setSelectedUser}
-                            placeholder="Select User"
+                            placeholder="Select Store"
                         />
                     </div>
                     <div className="w-full sm:w-56">
@@ -441,10 +400,10 @@ const SurveyFormReportAll = () => {
 
                                 <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                                     <div className="text-gray-600 text-xs font-medium mb-1">
-                                        Model
+                                        Brand
                                     </div>
                                     <div className="font-semibold text-gray-900">
-                                        {rowData.model}
+                                        {rowData.name}
                                     </div>
                                 </div>
 

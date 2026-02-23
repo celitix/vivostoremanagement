@@ -30,7 +30,7 @@ export default function ManageModels() {
 
     const [showDialog, setShowDialog] = useState(false);
     const [editMode, setEditMode] = useState(false);
-    const [modelName, setModelName] = useState("");
+    const [brandName, setBrandName] = useState("");
     const [editId, setEditId] = useState(null);
 
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -49,7 +49,7 @@ export default function ManageModels() {
             if (res?.status === true) {
                 setModels(res?.data || []);
             } else {
-                toast.error(res?.message || "Failed to load models");
+                toast.error(res?.message || "Failed to load brands");
             }
 
         } catch (err) {
@@ -67,11 +67,11 @@ export default function ManageModels() {
             if (res?.status === true) {
                 setDeletedModels(res?.data || []);
             } else {
-                toast.error(res?.message || "Failed to load deleted models");
+                toast.error(res?.message || "Failed to load deleted brands");
             }
 
         } catch (err) {
-            console.error("fetchDeletedModels", err);
+            console.error("fetchDeletedBrands", err);
             toast.error(err?.response?.data?.message || err?.message || "Unexpected error");
         }
     };
@@ -82,7 +82,7 @@ export default function ManageModels() {
     }, []);
 
     const openAddDialog = () => {
-        setModelName("");
+        setBrandName("");
         setEditMode(false);
         setShowDialog(true);
         setEditId(null);
@@ -90,14 +90,14 @@ export default function ManageModels() {
 
     const openEditDialog = (item) => {
         setEditMode(true);
-        setModelName(item.model);
+        setBrandName(item.name);
         setEditId(item.id);
         setShowDialog(true);
     };
 
     const handleSave = async () => {
-        if (!modelName?.trim()) {
-            toast.error("Model name cannot be empty");
+        if (!brandName?.trim()) {
+            toast.error("Brand name cannot be empty");
             return;
         }
 
@@ -108,10 +108,10 @@ export default function ManageModels() {
 
             if (editMode) {
                 // UPDATE
-                res = await updateModel({ id: editId, model: modelName });
+                res = await updateModel({ id: editId, name: brandName });
             } else {
                 // CREATE
-                res = await createModel({ model: modelName });
+                res = await createModel({ name: brandName });
             }
 
             if (res?.status === true) {
@@ -143,7 +143,7 @@ export default function ManageModels() {
             const res = await deleteModel(deleteId);
 
             if (res?.status === true) {
-                toast.success(res?.message || "Model deleted successfully");
+                toast.success(res?.message || "Brand deleted successfully");
                 setConfirmDelete(false);
                 fetchModels();
                 if (showDeletedDrawer) fetchDeletedModels();
@@ -167,7 +167,7 @@ export default function ManageModels() {
             const res = await restoreDeletedModel(id);
 
             if (res?.status === true) {
-                toast.success(res?.message || "Model restored successfully");
+                toast.success(res?.message || "Brand restored successfully");
                 fetchDeletedModels();
                 fetchModels();
             } else {
@@ -189,7 +189,7 @@ export default function ManageModels() {
             const res = await deleteDeletedModelPermanent(id);
 
             if (res?.status === true) {
-                toast.success(res?.message || "Model permanently deleted");
+                toast.success(res?.message || "Brand permanently deleted");
                 fetchDeletedModels();
                 fetchModels();
             } else {
@@ -206,7 +206,7 @@ export default function ManageModels() {
 
 
     const filteredModels = models.filter((m) =>
-        (m.model || "").toLowerCase().includes(search.toLowerCase())
+        (m.name || "").toLowerCase().includes(search.toLowerCase())
     );
 
     const highlightMatch = (text, query) => {
@@ -240,11 +240,11 @@ export default function ManageModels() {
                     className="mainlabel"
                     style={{ width: "max-content !important" }}
                 >
-                    Manage Models
+                    Manage Brands
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium
         transition-all duration-200 cursor-pointer select-none  bg-blue-100 text-blue-800 text-nowrap shadow-xl">
-                    <HiDevicePhoneMobile /> Total Models &nbsp;
+                    <HiDevicePhoneMobile /> Total Brands &nbsp;
 
                     {filteredModels.length}
                 </div>
@@ -253,16 +253,16 @@ export default function ManageModels() {
             <div className="space-x-2 flex flex-wrap md:flex-nowrap gap-2 items-end justify-center">
                 <div className="md:flex-1 w-full">
                     <InputField
-                        label='Search Model'
-                        placeholder="Search models..."
-                        className="w-full p-inputtext-sm"
+                        label='Search Brand'
+                        placeholder="Search brands..."
+                        className="w-full p-input text-sm"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
 
-                <UniversalButton label="Deleted Models" onClick={() => { fetchDeletedModels(); setShowDeletedDrawer(true); }} />
-                <UniversalButton label="Add Model" onClick={openAddDialog} />
+                <UniversalButton label="Deleted Brands" onClick={() => { fetchDeletedModels(); setShowDeletedDrawer(true); }} />
+                <UniversalButton label="Add Brand" onClick={openAddDialog} />
             </div>
 
 
@@ -290,8 +290,8 @@ export default function ManageModels() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" />
                                 </svg>
                             </div>
-                            <h2 className="text-lg font-medium text-slate-600">No models Found</h2>
-                            <p className="text-sm text-slate-400 mt-1">Try adjusting your search or adding a new model.</p>
+                            <h2 className="text-lg font-medium text-slate-600">No Brand Found</h2>
+                            <p className="text-sm text-slate-400 mt-1">Try adjusting your search or adding a new brand.</p>
                         </div>
                     </div>
                 ) : (
@@ -306,9 +306,9 @@ export default function ManageModels() {
                             >
                                 {/* Left Section */}
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm text-slate-400">Model</div>
+                                    <div className="text-sm text-slate-400">Brand</div>
                                     <div className="text-lg font-medium text-slate-800 break-words whitespace-normal">
-                                        {highlightMatch(item.model, search)}
+                                        {highlightMatch(item.name, search)}
                                     </div>
                                 </div>
 
@@ -339,7 +339,7 @@ export default function ManageModels() {
 
             {/* Add / Edit Dialog */}
             <Dialog
-                header={editMode ? "Edit Model" : "Add Model"}
+                header={editMode ? "Edit Brand" : "Add Brand"}
                 visible={showDialog}
                 style={{ width: "30rem" }}
                 onHide={() => setShowDialog(false)}
@@ -347,10 +347,10 @@ export default function ManageModels() {
             >
                 <div className="flex flex-col gap-3">
                     <InputField
-                        label={editMode ? "Update Model Name" : "Enter Model Name"}
-                        value={modelName}
-                        onChange={(e) => setModelName(e.target.value)}
-                        placeholder="Enter model name"
+                        label={editMode ? "Update Brand Name" : "Enter Brand Name"}
+                        value={brandName}
+                        onChange={(e) => setBrandName(e.target.value)}
+                        placeholder="Enter brand name"
                     />
 
                     <div className="flex justify-end gap-3 mt-2">
@@ -376,18 +376,18 @@ export default function ManageModels() {
                     <CancelOutlinedIcon sx={{ fontSize: 64, color: "#f44336", mb: 1 }} />
 
                     <h2 className="text-[1.15rem] font-semibold text-gray-700 mb-2 flex gap-2 items-center">
-                        Delete Model <HiDevicePhoneMobile />
+                        Delete Brand <HiDevicePhoneMobile />
                     </h2>
 
                     <p className="text-gray-600 text-sm mb-4">You are about to delete this model.</p>
 
                     <div className="bg-gray-100 text-gray-800 font-medium rounded-md px-3 py-2 mb-4 w-full text-center break-words">
-                        {/* {models.find((m) => m.id === deleteId)?.model || "Unnamed Model"} */}
+                        {models.find((m) => m.id === deleteId)?.name || "Unnamed Brand"}
                     </div>
 
                     <p className="text-gray-500 text-sm">
                         This action is <span className="font-semibold text-red-600">recoverable</span> (it will be moved to Deleted
-                        Models).
+                        Brand).
                     </p>
 
                     <div className="flex justify-center gap-4 mt-5">
@@ -409,7 +409,7 @@ export default function ManageModels() {
                 style={{ width: "480px" }}
             >
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold">Deleted Models</h2>
+                    <h2 className="text-xl font-semibold">Deleted Brand</h2>
                     <div className="text-sm text-slate-500">{deletedModels.length} items</div>
                 </div>
                 <div className="space-y-3">
@@ -420,7 +420,7 @@ export default function ManageModels() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 13h6m2 0a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3l-1-2H8L7 5H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16z" />
                                 </svg>
                             </div>
-                            <div className="text-sm">No deleted models</div>
+                            <div className="text-sm">No deleted Brands</div>
                         </div>
                     ) : (
                         deletedModels.map((item) => (
@@ -433,10 +433,10 @@ export default function ManageModels() {
                             >
                                 <div className="flex-1 min-w-0" >
                                     <div className="text-sm text-slate-400">{new Date(item.deletedAt || Date.now()).toLocaleString()}</div>
-                                    <div className="font-medium text-slate-800 text-wrap break-words whitespace-normal">{item.model}</div>
+                                    <div className="font-medium text-slate-800 text-wrap break-words whitespace-normal">{item.name}</div>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <CustomTooltip title="Restore Model" arrow placement="top">
+                                    <CustomTooltip title="Restore Brand" arrow placement="top">
                                         <button
                                             onClick={() => handleRestore(item.id)}
                                             className="

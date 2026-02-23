@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Sparkles } from 'lucide-react';
+import { Mail, Sparkles, User } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { useLocation } from 'react-router-dom';
 import thankyou from '@/assets/animation/thankyou.json';
@@ -62,12 +62,12 @@ const ThankYou = () => {
                                 className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 shadow-inner"
                             >
                                 <div className="flex items-center justify-center gap-2 text-blue-700 mb-2">
-                                    <Mail className="w-5 h-5" />
+                                    <User className="w-5 h-5" />
                                     <span className="text-sm font-semibold">Submitted From</span>
                                 </div>
                                 <p className="text-lg md:text-xl font-bold text-blue-900 tracking-wide break-all">
                                     {/* {userEmail} */}
-                                    {state?.email}
+                                    {state?.consumer_name}
                                 </p>
                             </motion.div>
 

@@ -10,8 +10,9 @@ import {
   LogOut,
   CircleChevronRight,
   CircleChevronLeft,
+  StoreIcon,
 } from "lucide-react";
-import { FaCircle } from "react-icons/fa";
+import { FaCircle, FaStoreSlash } from "react-icons/fa";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -41,25 +42,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   };
 
   const menu = [
-    // {
-    //   id: "1",
-    //   name: "dashboard",
-    //   label: "Dashboard",
-    //   icon: LayoutDashboard,
-    //   type: "single",
-    //   path: "/",
-    // },
-    // {
-    //   id: "6",
-    //   label: "User Management",
-    //   name: "user-management",
-    //   icon: Users,
-    //   type: "dropdown",
-    //   subMenu: [
-    //     { label: "Manage user", path: "/manageuser" },
-    //     // { label: "Admins", path: "/users/admins" },
-    //   ],
-    // },
     {
       id: "1",
       name: "dashboard",
@@ -67,52 +49,30 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       icon: FileSpreadsheet,
       type: "single",
       path: "/",
-      role: ["admin", "user"]
     },
     {
       id: "2",
-      name: "user-management",
-      label: "User Management",
-      icon: Users,
+      name: "store-management",
+      label: "Store Management",
+      icon: StoreIcon,
       type: "single",
-      path: "/manageuser",
-      role: ["admin"]
+      path: "/managestore",
     },
-    // {
-    //   id: "3",
-    //   name: "surveyform",
-    //   label: "Survey Report",
-    //   icon: FileSpreadsheet,
-    //   type: "single",
-    //   path: "/surveyformreport",
-    //   role: ["admin"]
-    // },
     {
       id: "3",
       name: "surveyform",
-      label: "Survey Report",
+      label: "Report",
       icon: FileSpreadsheet,
       type: "single",
       path: "/surveyformreportall",
-      role: ["admin"]
     },
     {
       id: "4",
-      name: "manageModels",
-      label: "Manage Models",
+      name: "manageBrands",
+      label: "Manage Brands",
       icon: HiDevicePhoneMobile,
       type: "single",
-      path: "/managemodels",
-      role: ["admin"]
-    },
-    {
-      id: "5",
-      name: "surveyForm",
-      label: "Survey Report",
-      icon: FileSpreadsheet,
-      type: "single",
-      path: "/surveyformuser",
-      role: ["user"]
+      path: "/managebrands",
     },
     {
       id: "9",
@@ -198,7 +158,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         {/* Title Section */}
         {/* Menu Items */}
         <div className="flex-1 overflow-y-auto height-cal scrollbar-hide px-2 mb-0 md:mb-18">
-          {filteredMenu.map((item, index) => {
+          {menu.map((item, index) => {
             const Icon = item.icon;
 
             const isActive =
