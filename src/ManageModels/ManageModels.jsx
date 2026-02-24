@@ -46,10 +46,10 @@ export default function ManageModels() {
         try {
             const res = await getModel();
 
-            if (res?.status === true) {
-                setModels(res?.data || []);
+            if (res?.data?.status === true) {
+                setModels(res?.data?.data || []);
             } else {
-                toast.error(res?.message || "Failed to load brands");
+                toast.error(res?.data?.message || "Failed to load brands");
             }
 
         } catch (err) {
@@ -64,8 +64,8 @@ export default function ManageModels() {
         try {
             const res = await getDeletedModel();
 
-            if (res?.status === true) {
-                setDeletedModels(res?.data || []);
+            if (res?.data?.status === true) {
+                setDeletedModels(res?.data?.data || []);
             } else {
                 toast.error(res?.message || "Failed to load deleted brands");
             }
@@ -114,7 +114,7 @@ export default function ManageModels() {
                 res = await createModel({ name: brandName });
             }
 
-            if (res?.status === true) {
+            if (res?.data?.status === true) {
                 toast.success(res?.message || "Success");
 
                 setShowDialog(false);
@@ -142,7 +142,7 @@ export default function ManageModels() {
         try {
             const res = await deleteModel(deleteId);
 
-            if (res?.status === true) {
+            if (res?.data?.status === true) {
                 toast.success(res?.message || "Brand deleted successfully");
                 setConfirmDelete(false);
                 fetchModels();
@@ -166,7 +166,7 @@ export default function ManageModels() {
         try {
             const res = await restoreDeletedModel(id);
 
-            if (res?.status === true) {
+            if (res?.data?.status === true) {
                 toast.success(res?.message || "Brand restored successfully");
                 fetchDeletedModels();
                 fetchModels();
@@ -188,12 +188,12 @@ export default function ManageModels() {
         try {
             const res = await deleteDeletedModelPermanent(id);
 
-            if (res?.status === true) {
-                toast.success(res?.message || "Brand permanently deleted");
+            if (res?.data?.status === true) {
+                toast.success(res?.data?.message || "Brand permanently deleted");
                 fetchDeletedModels();
                 fetchModels();
             } else {
-                toast.error(res?.message || "Permanent delete failed");
+                toast.error(res?.data?.message || "Permanent delete failed");
             }
 
         } catch (err) {

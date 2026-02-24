@@ -18,7 +18,6 @@ import AdminDashboard from "@/dashboard/AdminDashboard";
 import ManageUser from "@/ManageUser/ManageUser";
 
 // SurveyForm Reports
-import SurveyFormReport from "@/SurveyForm/SurveyFormReport";
 import SurveyFormReportAll from "@/SurveyForm/SurveyFormReportAll";
 
 import ManageModels from "@/ManageModels/ManageModels";
@@ -43,7 +42,6 @@ const Approutes = () => {
         {/* {!currentRole && <Route index element={<Navigate to="/login" replace />} />} */}
 
         <Route path="/managestore" element={<ManageUser />} />
-        <Route path="/surveyformreport" element={<SurveyFormReport />} />
         <Route path="/surveyformreportall" element={<SurveyFormReportAll />} />
         <Route path="/managebrands" element={<ManageModels />} />
       </Route>

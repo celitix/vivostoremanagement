@@ -21,13 +21,13 @@ const AdminDashboard = () => {
     setLoading(true);
     try {
       const res = await trackData();
-      if (res.status === true) {
-        setData(res.data || []);
-        setBrands(res.meta?.allBrands || []);
+      if (res.data.status === true) {
+        setData(res.data?.data || []);
+        setBrands(res?.data?.meta?.allBrands || []);
         // Set default selection to the first store with actual responses
         if (!selectedStore) {
-          const firstWithData = res.data.find(s => s.total_responses > 0);
-          setSelectedStore(firstWithData || res.data[0]);
+          const firstWithData = res.data?.data?.find(s => s.total_responses > 0);
+          setSelectedStore(firstWithData || res.data?.data[0]);
         }
       }
     } catch (error) {

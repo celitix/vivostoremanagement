@@ -148,7 +148,7 @@ const ManageUser = () => {
     try {
       const res = await getUserUniqueTokenLink(row.id);
 
-      if (res?.token) {
+      if (res?.data?.token) {
         const baseUrl = import.meta.env.VITE_API_BASE_URL_FRONTEND;
         const encodedName = encodeURIComponent(row.name);
         const shareableLink = `${baseUrl}/surveyform?token=${res.token}&name=${encodedName}`;
@@ -320,7 +320,7 @@ const ManageUser = () => {
     };
     try {
       const res = await getUserList(data);
-      setUsersListData(res?.users);
+      setUsersListData(res?.data?.users);
     } catch (error) {
       console.log("error", error);
     } finally {

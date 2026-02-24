@@ -27,7 +27,7 @@ import {
 
 
 
-import { allUsersList, allUserSurveyData, exportSurveyReport, exportSurveyReportUser, trackData } from "@/apis/manageuser/manageuser";
+import { allUsersList, allUserSurveyData, exportSurveyReportUser } from "@/apis/manageuser/manageuser";
 
 import { exportToExcel } from "@/utils/exportToExcel";
 import UniversalButton from "@/components/common/UniversalButton";
@@ -65,7 +65,7 @@ const SurveyFormReportAll = () => {
         try {
             setIsLoading(true);
             const res = await allUsersList();
-            setAllUsers(res.data);
+            setAllUsers(res.data?.data);
         } catch (e) {
             toast.error("Something went wrong! Please try again later.");
         } finally {
@@ -86,8 +86,8 @@ const SurveyFormReportAll = () => {
                 // toDate: "10-12-2025",
             }
             const res = await allUserSurveyData(data);
-            setUserData(res?.data || []);
-            setMetaData(res.meta || {});
+            setUserData(res?.data?.data || []);
+            setMetaData(res?.data?.meta || {});
         } catch (error) {
             console.log("error", error);
         } finally {
@@ -162,32 +162,59 @@ const SurveyFormReportAll = () => {
 
     const [exporting, setExporting] = useState(false);
 
+    // const handleExport = async () => {
+    //     setExporting(true);
+    //     try {
+    //         const token = ""
+    //         const res = await exportSurveyReportUser();
+
+    //         const blob = new Blob([res.data], {
+    //             type: res.headers["content-type"] || "application/octet-stream"
+    //         });
+
+    //         const url = window.URL.createObjectURL(blob);
+    //         const link = document.createElement("a");
+    //         link.href = url;
+    //         link.download = `Survey_Report_${moment().format("DD-MM-YYYY_HHmm")}.xlsx`;
+    //         link.click();
+
+    //         window.URL.revokeObjectURL(url);
+    //         toast.success("Export completed!");
+    //     } catch (err) {
+    //         console.error(err)
+    //         toast.error("Export failed");
+    //     } finally {
+    //         setExporting(false);
+    //     }
+    // };
+
     const handleExport = async () => {
         setExporting(true);
         try {
-            const token = ""
             const res = await exportSurveyReportUser();
 
             const blob = new Blob([res.data], {
-                type: res.headers["content-type"] || "application/octet-stream"
+                type: res.headers["content-type"] || "application/octet-stream",
             });
 
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
             link.download = `Survey_Report_${moment().format("DD-MM-YYYY_HHmm")}.xlsx`;
+            document.body.appendChild(link);
             link.click();
+            link.remove();
 
             window.URL.revokeObjectURL(url);
+
             toast.success("Export completed!");
         } catch (err) {
-            console.error(err)
+            console.error(err);
             toast.error("Export failed");
         } finally {
             setExporting(false);
         }
     };
-
     return (
         <>
             <div className="border-b border-gray-200 pb-3 mb-4 flex items-center justify-center text-center flex-wrap gap-4 md:flex-nowrap">

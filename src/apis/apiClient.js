@@ -51,13 +51,14 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
           message: "Unable to connect. Please try again.",
         },
       };
-    }
+    },
   );
   try {
     const response = await instance({
       method: options.method || "GET",
       url: `${API_BASE_URL}${endpoint}`,
       data: options.body,
+      responseType: options.responseType || "json",
       withCredentials: true,
       headers: {
         ...defaultHeaders,
@@ -75,7 +76,8 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     //   return;
     // }
 
-    return response.data;
+    // return response.data;
+    return response;
   } catch (error) {
     // if (error?.status === 401) {
     //   // console.error("Session expired. Redirecting to login...");

@@ -37,39 +37,11 @@ export const getUserUniqueTokenLink = async (data) => {
   });
 };
 
-// get user filled forms
-export const getUserFilledSurveyForms = async (token, params = {}) => {
-  const query = new URLSearchParams(params).toString();
-  return await fetchWithAuth(`/response/${token}${query ? `?${query}` : ""}`, {
-    method: "GET",
-  });
-};
 
 // delete user
 export const deleteUser = async (userid) => {
   return await fetchWithAuth(`/delete/${userid}`, {
     method: "POST",
-  });
-};
-
-export const getLeadDataLoginUser = async (params = {}) => {
-  const query = new URLSearchParams(params).toString();
-  return await fetchWithAuth(`/me/${query ? `?${query}` : ""}`, {
-    method: "GET",
-  });
-};
-
-// Get Lead Data
-export const getLeadData = async (data) => {
-  return await fetchWithAuth(`/lead/${data}`, {
-    method: "GET",
-  });
-};
-
-export const createLead = async (data) => {
-  return await fetchWithAuth(`/lead`, {
-    method: "POST",
-    body: JSON.stringify(data),
   });
 };
 
@@ -79,28 +51,19 @@ export const trackData = async () => {
   });
 };
 
-// export const exportSurveyReport = async (token) => {
-//   return await fetchWithAuth(`/export/${token}`, {
+
+// export const exportSurveyReportUser = async () => {
+//   return await axios.get(`/api/export`, {
 //     responseType: "blob",
-//     method: "GET",
+//     headers: {
+//       Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+//     },
 //   });
 // };
-
-export const exportSurveyReport = async (token) => {
-  return await axios.get(`/api/export/${token}`, {
-    responseType: "blob",
-    headers: {
-      Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-    },
-  });
-};
-
 export const exportSurveyReportUser = async () => {
-  return await axios.get(`/api/export`, {
+  return await fetchWithAuth(`/export`, {
+    method: "GET",
     responseType: "blob",
-    headers: {
-      Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-    },
   });
 };
 
@@ -117,11 +80,6 @@ export const allUsersList = async () => {
   });
 };
 
-// export const allUserSurveyData = async () => {
-//   return await fetchWithAuth(`/allUserData`, {
-//     method: "GET",
-//   });
-// };
 
 //================ Survey form apis started ===============================
 
